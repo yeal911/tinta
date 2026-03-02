@@ -15,22 +15,22 @@ void renderSearchOverlay(App& app) {
     float anim = app.searchAnimation;
 
     // Search bar dimensions
-    float barWidth = std::min(500.0f, app.width - 40.0f);
-    float barHeight = 44.0f;
+    float barWidth = std::min(dpi(app, 500.0f), app.width - dpi(app, 40.0f));
+    float barHeight = dpi(app, 44.0f);
     float barCenterWidth = (float)app.width;
     if (app.editMode) {
         // Center over editor pane (left side)
         float paneWidth = app.width * app.editorSplitRatio - 3;
-        barWidth = std::min(barWidth, paneWidth - 40.0f);
+        barWidth = std::min(barWidth, paneWidth - dpi(app, 40.0f));
         barCenterWidth = paneWidth;
     }
     float barX = (barCenterWidth - barWidth) / 2;
-    float barY = 20.0f * anim - barHeight * (1.0f - anim);  // Slide down from top
+    float barY = dpi(app, 20.0f) * anim - barHeight * (1.0f - anim);  // Slide down from top
 
     // Background with rounded corners
     D2D1_ROUNDED_RECT barRect = D2D1::RoundedRect(
         D2D1::RectF(barX, barY, barX + barWidth, barY + barHeight),
-        8, 8);
+        dpi(app, 8.0f), dpi(app, 8.0f));
 
     // Semi-transparent background based on theme
     if (app.theme.isDark) {
@@ -54,22 +54,23 @@ void renderSearchOverlay(App& app) {
         iconColor.a = 0.5f * anim;
         app.brush->SetColor(iconColor);
         // Draw a simple magnifying glass shape
-        float iconX = barX + 22;
-        float iconY = barY + 22;
+        float iconX = barX + dpi(app, 22.0f);
+        float iconY = barY + dpi(app, 22.0f);
+        float iconR = dpi(app, 7.0f);
         app.renderTarget->DrawEllipse(
-            D2D1::Ellipse(D2D1::Point2F(iconX, iconY - 2), 7, 7),
-            app.brush, 2.0f);
+            D2D1::Ellipse(D2D1::Point2F(iconX, iconY - dpi(app, 2.0f)), iconR, iconR),
+            app.brush, dpi(app, 2.0f));
         app.renderTarget->DrawLine(
-            D2D1::Point2F(iconX + 5, iconY + 3),
-            D2D1::Point2F(iconX + 9, iconY + 7),
-            app.brush, 2.0f);
+            D2D1::Point2F(iconX + dpi(app, 5.0f), iconY + dpi(app, 3.0f)),
+            D2D1::Point2F(iconX + dpi(app, 9.0f), iconY + dpi(app, 7.0f)),
+            app.brush, dpi(app, 2.0f));
     }
 
     // Search text
     IDWriteTextFormat* searchTextFormat = app.searchTextFormat;
     if (searchTextFormat) {
-        float textX = barX + 42;
-        float textWidth = barWidth - 120;  // Leave room for count
+        float textX = barX + dpi(app, 42.0f);
+        float textWidth = barWidth - dpi(app, 120.0f);  // Leave room for count
 
         if (app.searchQuery.empty()) {
             // Placeholder text
@@ -77,7 +78,7 @@ void renderSearchOverlay(App& app) {
             placeholderColor.a = 0.4f * anim;
             app.brush->SetColor(placeholderColor);
             app.renderTarget->DrawText(L"Search...", 9, searchTextFormat,
-                D2D1::RectF(textX, barY + 12, textX + textWidth, barY + barHeight), app.brush);
+                D2D1::RectF(textX, barY + dpi(app, 12.0f), textX + textWidth, barY + barHeight), app.brush);
         } else {
             // Actual search query
             D2D1_COLOR_F textColor = app.theme.text;
@@ -85,7 +86,7 @@ void renderSearchOverlay(App& app) {
             app.brush->SetColor(textColor);
             app.renderTarget->DrawText(app.searchQuery.c_str(), (UINT32)app.searchQuery.length(),
                 searchTextFormat,
-                D2D1::RectF(textX, barY + 12, textX + textWidth, barY + barHeight), app.brush);
+                D2D1::RectF(textX, barY + dpi(app, 12.0f), textX + textWidth, barY + barHeight), app.brush);
 
             // Blinking cursor
             auto now = std::chrono::steady_clock::now();
@@ -96,9 +97,9 @@ void renderSearchOverlay(App& app) {
                 float cursorX = textX + queryWidth + 2;
                 app.brush->SetColor(textColor);
                 app.renderTarget->DrawLine(
-                    D2D1::Point2F(cursorX, barY + 12),
-                    D2D1::Point2F(cursorX, barY + 32),
-                    app.brush, 1.5f);
+                    D2D1::Point2F(cursorX, barY + dpi(app, 12.0f)),
+                    D2D1::Point2F(cursorX, barY + dpi(app, 32.0f)),
+                    app.brush, dpi(app, 1.5f));
                 // Keep animating cursor
                 InvalidateRect(app.hwnd, nullptr, FALSE);
             }
@@ -120,9 +121,9 @@ void renderSearchOverlay(App& app) {
                 app.brush->SetColor(countColor);
             }
             float countTextWidth = measureText(app, countText, searchTextFormat);
-            float countX = barX + barWidth - countTextWidth - 14;
+            float countX = barX + barWidth - countTextWidth - dpi(app, 14.0f);
             app.renderTarget->DrawText(countText, (UINT32)wcslen(countText), searchTextFormat,
-                D2D1::RectF(countX, barY + 12, barX + barWidth - 10, barY + barHeight), app.brush);
+                D2D1::RectF(countX, barY + dpi(app, 12.0f), barX + barWidth - dpi(app, 10.0f), barY + barHeight), app.brush);
         }
 
     }
@@ -139,7 +140,7 @@ void renderFolderBrowser(App& app) {
     float anim = app.folderBrowserAnimation;
 
     // Panel dimensions
-    float panelWidth = std::min(300.0f, std::max(250.0f, app.width * 0.2f));
+    float panelWidth = std::min(dpi(app, 300.0f), std::max(dpi(app, 250.0f), app.width * 0.2f));
     float panelX = -panelWidth * (1.0f - anim);  // Slide in from left
     float panelY = 0;
     float panelHeight = (float)app.height;
@@ -160,9 +161,9 @@ void renderFolderBrowser(App& app) {
 
     IDWriteTextFormat* browserFormat = app.folderBrowserFormat;
     if (browserFormat) {
-        float padding = 12.0f;
-        float itemHeight = 28.0f;
-        float headerHeight = 40.0f;
+        float padding = dpi(app, 12.0f);
+        float itemHeight = dpi(app, 28.0f);
+        float headerHeight = dpi(app, 40.0f);
 
         // Current path header
         float headerY = panelY + padding;
@@ -203,7 +204,7 @@ void renderFolderBrowser(App& app) {
             app.brush, 1.0f);
 
         // Items list (with scrolling)
-        float listStartY = dividerY + 8.0f;
+        float listStartY = dividerY + dpi(app, 8.0f);
         float listHeight = panelHeight - listStartY - padding;
         float totalItemsHeight = app.folderItems.size() * itemHeight;
 
@@ -236,13 +237,13 @@ void renderFolderBrowser(App& app) {
                 hoverColor.a = 0.15f * anim;
                 app.brush->SetColor(hoverColor);
                 app.renderTarget->FillRoundedRectangle(
-                    D2D1::RoundedRect(D2D1::RectF(itemX - 4, itemY, itemX + itemW + 4, itemY + itemHeight), 4, 4),
+                    D2D1::RoundedRect(D2D1::RectF(itemX - dpi(app, 4.0f), itemY, itemX + itemW + dpi(app, 4.0f), itemY + itemHeight), 4, 4),
                     app.brush);
             }
 
             // Icon and text
-            float iconX = itemX + 4;
-            float textX = itemX + 26;
+            float iconX = itemX + dpi(app, 4.0f);
+            float textX = itemX + dpi(app, 26.0f);
 
             // Simple folder/file indicator
             if (item.isDirectory) {
@@ -252,11 +253,11 @@ void renderFolderBrowser(App& app) {
                 app.brush->SetColor(folderColor);
                 // Main body
                 app.renderTarget->FillRoundedRectangle(
-                    D2D1::RoundedRect(D2D1::RectF(iconX, itemY + 10, iconX + 16, itemY + 22), 2, 2),
+                    D2D1::RoundedRect(D2D1::RectF(iconX, itemY + dpi(app, 10.0f), iconX + dpi(app, 16.0f), itemY + dpi(app, 22.0f)), 2, 2),
                     app.brush);
                 // Tab
                 app.renderTarget->FillRectangle(
-                    D2D1::RectF(iconX, itemY + 8, iconX + 8, itemY + 11),
+                    D2D1::RectF(iconX, itemY + dpi(app, 8.0f), iconX + dpi(app, 8.0f), itemY + dpi(app, 11.0f)),
                     app.brush);
             } else {
                 // File icon (simple document shape)
@@ -264,7 +265,7 @@ void renderFolderBrowser(App& app) {
                 fileColor.a = 0.6f * anim;
                 app.brush->SetColor(fileColor);
                 app.renderTarget->DrawRoundedRectangle(
-                    D2D1::RoundedRect(D2D1::RectF(iconX + 2, itemY + 6, iconX + 14, itemY + 22), 1, 1),
+                    D2D1::RoundedRect(D2D1::RectF(iconX + dpi(app, 2.0f), itemY + dpi(app, 6.0f), iconX + dpi(app, 14.0f), itemY + dpi(app, 22.0f)), 1, 1),
                     app.brush, 1.0f);
             }
 
@@ -274,22 +275,22 @@ void renderFolderBrowser(App& app) {
             app.brush->SetColor(textColor);
 
             app.renderTarget->DrawText(item.name.c_str(), (UINT32)item.name.length(), browserFormat,
-                D2D1::RectF(textX, itemY + 4, panelX + panelWidth - padding, itemY + itemHeight),
+                D2D1::RectF(textX, itemY + dpi(app, 4.0f), panelX + panelWidth - padding, itemY + itemHeight),
                 app.brush);
         }
 
         // Scrollbar if needed
         if (totalItemsHeight > listHeight) {
             float sbHeight = listHeight / totalItemsHeight * listHeight;
-            sbHeight = std::max(sbHeight, 20.0f);
+            sbHeight = std::max(sbHeight, dpi(app, 20.0f));
             float sbY = listStartY + (maxScroll > 0 ? (app.folderBrowserScroll / maxScroll * (listHeight - sbHeight)) : 0);
 
             D2D1_COLOR_F sbColor = app.theme.text;
             sbColor.a = 0.3f * anim;
             app.brush->SetColor(sbColor);
             app.renderTarget->FillRoundedRectangle(
-                D2D1::RoundedRect(D2D1::RectF(panelX + panelWidth - 8, sbY,
-                                              panelX + panelWidth - 4, sbY + sbHeight), 2, 2),
+                D2D1::RoundedRect(D2D1::RectF(panelX + panelWidth - dpi(app, 8.0f), sbY,
+                                              panelX + panelWidth - dpi(app, 4.0f), sbY + sbHeight), 2, 2),
                 app.brush);
         }
     }
@@ -306,7 +307,7 @@ void renderToc(App& app) {
     float anim = app.tocAnimation;
 
     // Panel dimensions
-    float panelWidth = std::min(280.0f, std::max(220.0f, app.width * 0.2f));
+    float panelWidth = std::min(dpi(app, 280.0f), std::max(dpi(app, 220.0f), app.width * 0.2f));
     float panelX = app.width - panelWidth * anim;  // Slide in from right
     float panelY = 0;
     float panelHeight = (float)app.height;
@@ -328,9 +329,9 @@ void renderToc(App& app) {
     IDWriteTextFormat* tocBold = app.tocFormatBold;
     IDWriteTextFormat* tocNormal = app.tocFormat;
     if (tocBold && tocNormal) {
-        float padding = 12.0f;
-        float itemHeight = 28.0f;
-        float headerHeight = 40.0f;
+        float padding = dpi(app, 12.0f);
+        float itemHeight = dpi(app, 28.0f);
+        float headerHeight = dpi(app, 40.0f);
 
         // Header: "Contents"
         float headerY = panelY + padding;
@@ -350,7 +351,7 @@ void renderToc(App& app) {
             app.brush, 1.0f);
 
         // Items list
-        float listStartY = dividerY + 8.0f;
+        float listStartY = dividerY + dpi(app, 8.0f);
         float listHeight = panelHeight - listStartY - padding;
 
         if (app.headings.empty()) {
@@ -359,7 +360,7 @@ void renderToc(App& app) {
             dimColor.a = 0.5f * anim;
             app.brush->SetColor(dimColor);
             app.renderTarget->DrawText(L"No headings", 11, tocNormal,
-                D2D1::RectF(panelX + padding, listStartY + 8, panelX + panelWidth - padding, listStartY + 40),
+                D2D1::RectF(panelX + padding, listStartY + dpi(app, 8.0f), panelX + panelWidth - padding, listStartY + dpi(app, 40.0f)),
                 app.brush);
         } else {
             float totalItemsHeight = app.headings.size() * itemHeight;
@@ -377,7 +378,7 @@ void renderToc(App& app) {
                 if (itemY + itemHeight < listStartY || itemY > panelHeight - padding) continue;
 
                 const auto& heading = app.headings[i];
-                float indent = (heading.level - 1) * 16.0f;
+                float indent = (heading.level - 1) * dpi(app, 16.0f);
                 float itemX = panelX + padding + indent;
 
                 // Check hover (use full item width for hit area)
@@ -395,8 +396,8 @@ void renderToc(App& app) {
                     hoverColor.a = 0.15f * anim;
                     app.brush->SetColor(hoverColor);
                     app.renderTarget->FillRoundedRectangle(
-                        D2D1::RoundedRect(D2D1::RectF(panelX + padding - 4, itemY,
-                            panelX + panelWidth - padding + 4, itemY + itemHeight), 4, 4),
+                        D2D1::RoundedRect(D2D1::RectF(panelX + padding - dpi(app, 4.0f), itemY,
+                            panelX + panelWidth - padding + dpi(app, 4.0f), itemY + itemHeight), 4, 4),
                         app.brush);
                 }
 
@@ -415,22 +416,22 @@ void renderToc(App& app) {
                 app.brush->SetColor(textColor);
 
                 app.renderTarget->DrawText(heading.text.c_str(), (UINT32)heading.text.length(), fmt,
-                    D2D1::RectF(itemX, itemY + 4, panelX + panelWidth - padding, itemY + itemHeight),
+                    D2D1::RectF(itemX, itemY + dpi(app, 4.0f), panelX + panelWidth - padding, itemY + itemHeight),
                     app.brush);
             }
 
             // Scrollbar if needed
             if (totalItemsHeight > listHeight) {
                 float sbHeight = listHeight / totalItemsHeight * listHeight;
-                sbHeight = std::max(sbHeight, 20.0f);
+                sbHeight = std::max(sbHeight, dpi(app, 20.0f));
                 float sbY = listStartY + (maxScroll > 0 ? (app.tocScroll / maxScroll * (listHeight - sbHeight)) : 0);
 
                 D2D1_COLOR_F sbColor = app.theme.text;
                 sbColor.a = 0.3f * anim;
                 app.brush->SetColor(sbColor);
                 app.renderTarget->FillRoundedRectangle(
-                    D2D1::RoundedRect(D2D1::RectF(panelX + 4, sbY,
-                                                  panelX + 8, sbY + sbHeight), 2, 2),
+                    D2D1::RoundedRect(D2D1::RectF(panelX + dpi(app, 4.0f), sbY,
+                                                  panelX + dpi(app, 8.0f), sbY + sbHeight), 2, 2),
                     app.brush);
             }
         }
@@ -446,7 +447,6 @@ void renderThemeChooser(App& app) {
             InvalidateRect(app.hwnd, nullptr, FALSE);
     }
     float anim = app.themeChooserAnimation;
-    float s = app.contentScale;  // DPI scale factor for layout dimensions
 
     // Semi-transparent backdrop with blur effect simulation
     float backdropAlpha = 0.85f * anim;
@@ -455,15 +455,15 @@ void renderThemeChooser(App& app) {
         D2D1::RectF(0, 0, (float)app.width, (float)app.height), app.brush);
 
     // Panel dimensions - 2 columns (Light | Dark), 5 rows
-    float panelWidth = std::min(900.0f * s, app.width - 80.0f * s);
-    float panelHeight = std::min(620.0f * s, app.height - 80.0f * s);
+    float panelWidth = std::min(dpi(app, 900.0f), app.width - dpi(app, 80.0f));
+    float panelHeight = std::min(dpi(app, 620.0f), app.height - dpi(app, 80.0f));
     float panelX = (app.width - panelWidth) / 2;
-    float panelY = (app.height - panelHeight) / 2 + (1 - anim) * 50 * s;
+    float panelY = (app.height - panelHeight) / 2 + (1 - anim) * dpi(app, 50.0f);
 
     // Panel background with subtle gradient simulation
     D2D1_ROUNDED_RECT panelRect = D2D1::RoundedRect(
         D2D1::RectF(panelX, panelY, panelX + panelWidth, panelY + panelHeight),
-        16 * s, 16 * s);
+        dpi(app, 16.0f), dpi(app, 16.0f));
     app.brush->SetColor(hexColor(0x1A1A1E, 0.98f * anim));
     app.renderTarget->FillRoundedRectangle(panelRect, app.brush);
 
@@ -477,14 +477,14 @@ void renderThemeChooser(App& app) {
         titleFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
         app.brush->SetColor(D2D1::ColorF(1, 1, 1, anim));
         app.renderTarget->DrawText(L"Choose Theme", 12, titleFormat,
-            D2D1::RectF(panelX, panelY + 15 * s, panelX + panelWidth, panelY + 55 * s), app.brush);
+            D2D1::RectF(panelX, panelY + dpi(app, 15.0f), panelX + panelWidth, panelY + dpi(app, 55.0f)), app.brush);
     }
 
     // Theme grid - 2 columns, 5 rows
-    float gridStartY = panelY + 75 * s;
-    float cardWidth = (panelWidth - 60 * s) / 2;  // 2 columns with padding
-    float cardHeight = (panelHeight - 130 * s) / 5;  // 5 rows
-    float cardPadding = 8 * s;
+    float gridStartY = panelY + dpi(app, 75.0f);
+    float cardWidth = (panelWidth - dpi(app, 60.0f)) / 2;  // 2 columns with padding
+    float cardHeight = (panelHeight - dpi(app, 130.0f)) / 5;  // 5 rows
+    float cardPadding = dpi(app, 8.0f);
 
     app.hoveredThemeIndex = -1;
 
@@ -493,7 +493,7 @@ void renderThemeChooser(App& app) {
         int col = t.isDark ? 1 : 0;  // Light themes left, dark themes right
         int row = t.isDark ? (i - 5) : i;
 
-        float cardX = panelX + 20 * s + col * (cardWidth + 20 * s);
+        float cardX = panelX + dpi(app, 20.0f) + col * (cardWidth + dpi(app, 20.0f));
         float cardY = gridStartY + row * cardHeight;
         float innerX = cardX + cardPadding;
         float innerY = cardY + cardPadding;
@@ -512,15 +512,15 @@ void renderThemeChooser(App& app) {
         // Card background (theme preview)
         D2D1_ROUNDED_RECT cardRect = D2D1::RoundedRect(
             D2D1::RectF(innerX, innerY, innerX + innerW, innerY + innerH),
-            10 * s, 10 * s);
+            dpi(app, 10.0f), dpi(app, 10.0f));
 
         // Selection/hover glow
         if (isSelected || isHovered) {
-            float glowSize = (isSelected ? 3.0f : 2.0f) * s;
+            float glowSize = isSelected ? 3.0f : 2.0f;
             D2D1_ROUNDED_RECT glowRect = D2D1::RoundedRect(
                 D2D1::RectF(innerX - glowSize, innerY - glowSize,
                             innerX + innerW + glowSize, innerY + innerH + glowSize),
-                12 * s, 12 * s);
+                12, 12);
             D2D1_COLOR_F glowColor = t.accent;
             glowColor.a = (isSelected ? 0.8f : 0.5f) * anim;
             app.brush->SetColor(glowColor);
@@ -541,7 +541,7 @@ void renderThemeChooser(App& app) {
             nameColor.a = anim;
             app.brush->SetColor(nameColor);
             app.renderTarget->DrawText(t.name, (UINT32)wcslen(t.name), nameFormat,
-                D2D1::RectF(innerX + 12 * s, innerY + 8 * s, innerX + innerW - 10 * s, innerY + 28 * s), app.brush);
+                D2D1::RectF(innerX + dpi(app, 12.0f), innerY + dpi(app, 8.0f), innerX + innerW - dpi(app, 10.0f), innerY + dpi(app, 28.0f)), app.brush);
         }
 
         // Preview text samples
@@ -553,21 +553,21 @@ void renderThemeChooser(App& app) {
             textColor.a = anim;
             app.brush->SetColor(textColor);
             app.renderTarget->DrawText(L"The quick brown fox", 19, previewFormat,
-                D2D1::RectF(innerX + 12 * s, innerY + 30 * s, innerX + innerW - 10 * s, innerY + 45 * s), app.brush);
+                D2D1::RectF(innerX + dpi(app, 12.0f), innerY + dpi(app, 30.0f), innerX + innerW - dpi(app, 10.0f), innerY + dpi(app, 45.0f)), app.brush);
 
             // Link sample
             D2D1_COLOR_F linkColor = t.link;
             linkColor.a = anim;
             app.brush->SetColor(linkColor);
             app.renderTarget->DrawText(L"hyperlink", 9, previewFormat,
-                D2D1::RectF(innerX + 12 * s, innerY + 44 * s, innerX + 80 * s, innerY + 58 * s), app.brush);
+                D2D1::RectF(innerX + dpi(app, 12.0f), innerY + dpi(app, 44.0f), innerX + dpi(app, 80.0f), innerY + dpi(app, 58.0f)), app.brush);
 
             // Code sample background
             D2D1_COLOR_F codeBgColor = t.codeBackground;
             codeBgColor.a = anim;
             app.brush->SetColor(codeBgColor);
             app.renderTarget->FillRoundedRectangle(
-                D2D1::RoundedRect(D2D1::RectF(innerX + 75 * s, innerY + 44 * s, innerX + 140 * s, innerY + 58 * s), 3 * s, 3 * s),
+                D2D1::RoundedRect(D2D1::RectF(innerX + dpi(app, 75.0f), innerY + dpi(app, 44.0f), innerX + dpi(app, 140.0f), innerY + dpi(app, 58.0f)), 3, 3),
                 app.brush);
 
             // Code text
@@ -578,7 +578,7 @@ void renderThemeChooser(App& app) {
                 codeColor.a = anim;
                 app.brush->SetColor(codeColor);
                 app.renderTarget->DrawText(L"code()", 6, codePreviewFormat,
-                    D2D1::RectF(innerX + 78 * s, innerY + 45 * s, innerX + 138 * s, innerY + 58 * s), app.brush);
+                    D2D1::RectF(innerX + dpi(app, 78.0f), innerY + dpi(app, 45.0f), innerX + dpi(app, 138.0f), innerY + dpi(app, 58.0f)), app.brush);
             }
         }
 
@@ -588,18 +588,18 @@ void renderThemeChooser(App& app) {
             checkColor.a = anim;
             app.brush->SetColor(checkColor);
             app.renderTarget->FillEllipse(
-                D2D1::Ellipse(D2D1::Point2F(innerX + innerW - 18 * s, innerY + 15 * s), 8 * s, 8 * s),
+                D2D1::Ellipse(D2D1::Point2F(innerX + innerW - dpi(app, 18.0f), innerY + dpi(app, 15.0f)), dpi(app, 8.0f), dpi(app, 8.0f)),
                 app.brush);
             app.brush->SetColor(t.isDark ? hexColor(0x000000, anim) : hexColor(0xFFFFFF, anim));
             // Draw checkmark using lines
             app.renderTarget->DrawLine(
-                D2D1::Point2F(innerX + innerW - 22 * s, innerY + 15 * s),
-                D2D1::Point2F(innerX + innerW - 18 * s, innerY + 19 * s),
-                app.brush, 2.0f);
+                D2D1::Point2F(innerX + innerW - dpi(app, 22.0f), innerY + dpi(app, 15.0f)),
+                D2D1::Point2F(innerX + innerW - dpi(app, 18.0f), innerY + dpi(app, 19.0f)),
+                app.brush, dpi(app, 2.0f));
             app.renderTarget->DrawLine(
-                D2D1::Point2F(innerX + innerW - 18 * s, innerY + 19 * s),
-                D2D1::Point2F(innerX + innerW - 13 * s, innerY + 11 * s),
-                app.brush, 2.0f);
+                D2D1::Point2F(innerX + innerW - dpi(app, 18.0f), innerY + dpi(app, 19.0f)),
+                D2D1::Point2F(innerX + innerW - dpi(app, 13.0f), innerY + dpi(app, 11.0f)),
+                app.brush, dpi(app, 2.0f));
         }
 
         // Border
@@ -617,10 +617,10 @@ void renderThemeChooser(App& app) {
 
         // Light themes header
         app.renderTarget->DrawText(L"LIGHT THEMES", 12, headerFormat,
-            D2D1::RectF(panelX + 20 * s, gridStartY - 20 * s, panelX + 20 * s + cardWidth, gridStartY - 5 * s), app.brush);
+            D2D1::RectF(panelX + dpi(app, 20.0f), gridStartY - dpi(app, 20.0f), panelX + dpi(app, 20.0f) + cardWidth, gridStartY - dpi(app, 5.0f)), app.brush);
 
         // Dark themes header
         app.renderTarget->DrawText(L"DARK THEMES", 11, headerFormat,
-            D2D1::RectF(panelX + 40 * s + cardWidth, gridStartY - 20 * s, panelX + 40 * s + cardWidth * 2, gridStartY - 5 * s), app.brush);
+            D2D1::RectF(panelX + dpi(app, 40.0f) + cardWidth, gridStartY - dpi(app, 20.0f), panelX + dpi(app, 40.0f) + cardWidth * 2, gridStartY - dpi(app, 5.0f)), app.brush);
     }
 }

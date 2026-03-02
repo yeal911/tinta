@@ -204,7 +204,7 @@ render_document:
     // Determine scrollbar visibility
     bool needsVScroll = app.contentHeight > app.height;
     bool needsHScroll = app.contentWidth > app.width;
-    float scrollbarSize = 14.0f;
+    float scrollbarSize = dpi(app, 14.0f);
 
     // Scrollbar color: dark on light themes, light on dark themes
     float sbColorValue = app.theme.isDark ? 1.0f : 0.0f;
@@ -214,16 +214,16 @@ render_document:
         float maxScrollY = std::max(0.0f, app.contentHeight - app.height);
         float trackHeight = app.height - (needsHScroll ? scrollbarSize : 0);
         float sbHeight = trackHeight / app.contentHeight * trackHeight;
-        sbHeight = std::max(sbHeight, 30.0f);
+        sbHeight = std::max(sbHeight, dpi(app, 30.0f));
         float sbY = (maxScrollY > 0) ? (app.scrollY / maxScrollY * (trackHeight - sbHeight)) : 0;
 
-        float sbWidth = (app.scrollbarHovered || app.scrollbarDragging) ? 10.0f : 6.0f;
+        float sbWidth = (app.scrollbarHovered || app.scrollbarDragging) ? dpi(app, 10.0f) : dpi(app, 6.0f);
         float sbAlpha = (app.scrollbarHovered || app.scrollbarDragging) ? 0.5f : 0.3f;
 
         app.brush->SetColor(D2D1::ColorF(sbColorValue, sbColorValue, sbColorValue, sbAlpha));
         app.renderTarget->FillRoundedRectangle(
-            D2D1::RoundedRect(D2D1::RectF(app.width - sbWidth - 4, sbY,
-                                          app.width - 4, sbY + sbHeight), 3, 3),
+            D2D1::RoundedRect(D2D1::RectF(app.width - sbWidth - dpi(app, 4.0f), sbY,
+                                          app.width - dpi(app, 4.0f), sbY + sbHeight), 3, 3),
             app.brush);
         app.drawCalls++;
     }
@@ -233,16 +233,16 @@ render_document:
         float maxScrollX = std::max(0.0f, app.contentWidth - app.width);
         float trackWidth = app.width - (needsVScroll ? scrollbarSize : 0);
         float sbWidth = trackWidth / app.contentWidth * trackWidth;
-        sbWidth = std::max(sbWidth, 30.0f);
+        sbWidth = std::max(sbWidth, dpi(app, 30.0f));
         float sbX = (maxScrollX > 0) ? (app.scrollX / maxScrollX * (trackWidth - sbWidth)) : 0;
 
-        float sbHeight = (app.hScrollbarHovered || app.hScrollbarDragging) ? 10.0f : 6.0f;
+        float sbHeight = (app.hScrollbarHovered || app.hScrollbarDragging) ? dpi(app, 10.0f) : dpi(app, 6.0f);
         float sbAlpha = (app.hScrollbarHovered || app.hScrollbarDragging) ? 0.5f : 0.3f;
 
         app.brush->SetColor(D2D1::ColorF(sbColorValue, sbColorValue, sbColorValue, sbAlpha));
         app.renderTarget->FillRoundedRectangle(
-            D2D1::RoundedRect(D2D1::RectF(sbX, app.height - sbHeight - 4,
-                                          sbX + sbWidth, app.height - 4), 3, 3),
+            D2D1::RoundedRect(D2D1::RectF(sbX, app.height - sbHeight - dpi(app, 4.0f),
+                                          sbX + sbWidth, app.height - dpi(app, 4.0f)), 3, 3),
             app.brush);
         app.drawCalls++;
     }
@@ -431,10 +431,10 @@ render_document:
             }
             app.copiedNotificationAlpha = alpha;
 
-            float copyWidth = 100.0f;
-            float copyHeight = 26;
+            float copyWidth = dpi(app, 100.0f);
+            float copyHeight = dpi(app, 26.0f);
             float pillX = (app.width - copyWidth) / 2;
-            float pillY = 10;
+            float pillY = dpi(app, 10.0f);
 
             app.brush->SetColor(D2D1::ColorF(0.2f, 0.7f, 0.3f, 0.9f * alpha));
             app.renderTarget->FillRoundedRectangle(
@@ -481,19 +481,19 @@ render_document:
             app.metrics.dwriteInitUs / 1000.0,
             app.metrics.fileLoadUs / 1000.0);
 
-        float statsWidth = 600;
-        float statsHeight = 50;
+        float statsWidth = dpi(app, 600.0f);
+        float statsHeight = dpi(app, 50.0f);
 
         app.brush->SetColor(D2D1::ColorF(0, 0, 0, 0.8f));
         app.renderTarget->FillRectangle(
-            D2D1::RectF(app.width - statsWidth - 10, app.height - statsHeight - 10,
-                       app.width - 10, app.height - 10),
+            D2D1::RectF(app.width - statsWidth - dpi(app, 10.0f), app.height - statsHeight - dpi(app, 10.0f),
+                       app.width - dpi(app, 10.0f), app.height - dpi(app, 10.0f)),
             app.brush);
 
         app.brush->SetColor(D2D1::ColorF(0.7f, 0.9f, 0.7f));
         app.renderTarget->DrawText(stats, (UINT32)wcslen(stats), app.codeFormat,
-            D2D1::RectF(app.width - statsWidth - 5, app.height - statsHeight - 5,
-                       app.width - 15, app.height - 15),
+            D2D1::RectF(app.width - statsWidth - dpi(app, 5.0f), app.height - statsHeight - dpi(app, 5.0f),
+                       app.width - dpi(app, 15.0f), app.height - dpi(app, 15.0f)),
             app.brush);
     }
 

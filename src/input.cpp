@@ -40,14 +40,14 @@ void handleMouseWheel(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
 
     // Handle folder browser scroll
     if (app.showFolderBrowser) {
-        float panelWidth = std::min(300.0f, std::max(250.0f, app.width * 0.2f));
+        float panelWidth = std::min(dpi(app, 300.0f), std::max(dpi(app, 250.0f), app.width * 0.2f));
         float panelX = -panelWidth * (1.0f - app.folderBrowserAnimation);
         if (app.mouseX >= panelX && app.mouseX <= panelX + panelWidth) {
             // Scroll folder list
-            app.folderBrowserScroll -= delta * 60.0f;
-            float itemHeight = 28.0f;
-            float headerHeight = 48.0f;
-            float listHeight = app.height - headerHeight - 20.0f;
+            app.folderBrowserScroll -= delta * dpi(app, 60.0f);
+            float itemHeight = dpi(app, 28.0f);
+            float headerHeight = dpi(app, 48.0f);
+            float listHeight = app.height - headerHeight - dpi(app, 20.0f);
             float totalItemsHeight = app.folderItems.size() * itemHeight;
             float maxScroll = std::max(0.0f, totalItemsHeight - listHeight);
             app.folderBrowserScroll = std::max(0.0f, std::min(app.folderBrowserScroll, maxScroll));
@@ -58,13 +58,13 @@ void handleMouseWheel(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
 
     // Handle TOC scroll
     if (app.showToc) {
-        float panelWidth = std::min(280.0f, std::max(220.0f, app.width * 0.2f));
+        float panelWidth = std::min(dpi(app, 280.0f), std::max(dpi(app, 220.0f), app.width * 0.2f));
         float panelX = app.width - panelWidth * app.tocAnimation;
         if (app.mouseX >= panelX && app.mouseX <= panelX + panelWidth) {
-            app.tocScroll -= delta * 60.0f;
-            float itemHeight = 28.0f;
-            float headerHeight = 48.0f;
-            float listHeight = app.height - headerHeight - 20.0f;
+            app.tocScroll -= delta * dpi(app, 60.0f);
+            float itemHeight = dpi(app, 28.0f);
+            float headerHeight = dpi(app, 48.0f);
+            float listHeight = app.height - headerHeight - dpi(app, 20.0f);
             float totalItemsHeight = app.headings.size() * itemHeight;
             float maxScroll = std::max(0.0f, totalItemsHeight - listHeight);
             app.tocScroll = std::max(0.0f, std::min(app.tocScroll, maxScroll));
@@ -80,7 +80,7 @@ void handleMouseWheel(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
         updateTextFormats(app);
     } else {
         // Normal scroll
-        app.targetScrollY -= delta * 60.0f;
+        app.targetScrollY -= delta * dpi(app, 60.0f);
         float maxScroll = std::max(0.0f, app.contentHeight - app.height);
         app.targetScrollY = std::max(0.0f, std::min(app.targetScrollY, maxScroll));
         app.scrollY = app.targetScrollY;
@@ -91,7 +91,7 @@ void handleMouseWheel(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
 
 void handleMouseHWheel(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
     // Horizontal scroll
-    float delta = (float)GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA * 60.0f;
+    float delta = (float)GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA * dpi(app, 60.0f);
     app.targetScrollX += delta;
 
     float maxScrollX = std::max(0.0f, app.contentWidth - app.width);
@@ -195,7 +195,7 @@ void handleMouseMove(App& app, HWND hwnd, LPARAM lParam) {
     bool wasHovered = app.scrollbarHovered;
     app.scrollbarHovered = false;
     if (app.contentHeight > app.height) {
-        float sbWidth = 14.0f;  // hit area
+        float sbWidth = dpi(app, 14.0f);  // hit area
         if (app.mouseX >= app.width - sbWidth) {
             app.scrollbarHovered = true;
         }
@@ -205,7 +205,7 @@ void handleMouseMove(App& app, HWND hwnd, LPARAM lParam) {
     bool wasHHovered = app.hScrollbarHovered;
     app.hScrollbarHovered = false;
     if (app.contentWidth > app.width) {
-        float sbHeight = 14.0f;  // hit area
+        float sbHeight = dpi(app, 14.0f);  // hit area
         if (app.mouseY >= app.height - sbHeight) {
             app.hScrollbarHovered = true;
         }
@@ -228,7 +228,7 @@ void handleMouseMove(App& app, HWND hwnd, LPARAM lParam) {
 
     // Update cursor (using cached handles)
     if (app.showFolderBrowser) {
-        float panelWidth = std::min(300.0f, std::max(250.0f, app.width * 0.2f));
+        float panelWidth = std::min(dpi(app, 300.0f), std::max(dpi(app, 250.0f), app.width * 0.2f));
         float panelX = -panelWidth * (1.0f - app.folderBrowserAnimation);
         bool inPanel = (app.mouseX >= panelX && app.mouseX <= panelX + panelWidth);
         if (inPanel && app.hoveredFolderIndex >= 0) {
@@ -240,7 +240,7 @@ void handleMouseMove(App& app, HWND hwnd, LPARAM lParam) {
         if (inPanel)
             InvalidateRect(hwnd, nullptr, FALSE);
     } else if (app.showToc) {
-        float panelWidth = std::min(280.0f, std::max(220.0f, app.width * 0.2f));
+        float panelWidth = std::min(dpi(app, 280.0f), std::max(dpi(app, 220.0f), app.width * 0.2f));
         float panelX = app.width - panelWidth * app.tocAnimation;
         bool inPanel = (app.mouseX >= panelX && app.mouseX <= panelX + panelWidth);
         if (inPanel && app.hoveredTocIndex >= 0) {
@@ -433,7 +433,7 @@ void handleMouseUp(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
     if (app.showToc) {
         int clickX = GET_X_LPARAM(lParam);
 
-        float panelWidth = std::min(280.0f, std::max(220.0f, app.width * 0.2f));
+        float panelWidth = std::min(dpi(app, 280.0f), std::max(dpi(app, 220.0f), app.width * 0.2f));
         float panelX = app.width - panelWidth * app.tocAnimation;
 
         if (clickX >= panelX && (float)clickX <= panelX + panelWidth) {
@@ -465,7 +465,7 @@ void handleMouseUp(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
         int clickY = GET_Y_LPARAM(lParam);
 
         // Calculate panel bounds (must match render code)
-        float panelWidth = std::min(300.0f, std::max(250.0f, app.width * 0.2f));
+        float panelWidth = std::min(dpi(app, 300.0f), std::max(dpi(app, 250.0f), app.width * 0.2f));
         float panelX = -panelWidth * (1.0f - app.folderBrowserAnimation);
 
         // Check if click is inside panel
@@ -539,17 +539,16 @@ void handleMouseUp(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
     if (app.showThemeChooser) {
         int clickX = GET_X_LPARAM(lParam);
         int clickY = GET_Y_LPARAM(lParam);
-        float s = app.contentScale;
 
         // Calculate which theme was clicked (replicate layout logic)
-        float panelWidth = std::min(900.0f * s, (float)app.width - 80.0f * s);
-        float panelHeight = std::min(620.0f * s, (float)app.height - 80.0f * s);
+        float panelWidth = std::min(dpi(app, 900.0f), (float)app.width - dpi(app, 80.0f));
+        float panelHeight = std::min(dpi(app, 620.0f), (float)app.height - dpi(app, 80.0f));
         float panelX = (app.width - panelWidth) / 2;
         float panelY = (app.height - panelHeight) / 2;
-        float gridStartY = panelY + 75 * s;
-        float cardWidth = (panelWidth - 60 * s) / 2;
-        float cardHeight = (panelHeight - 130 * s) / 5;
-        float cardPadding = 8 * s;
+        float gridStartY = panelY + dpi(app, 75.0f);
+        float cardWidth = (panelWidth - dpi(app, 60.0f)) / 2;
+        float cardHeight = (panelHeight - dpi(app, 130.0f)) / 5;
+        float cardPadding = dpi(app, 8.0f);
 
         int clickedTheme = -1;
         for (int i = 0; i < THEME_COUNT; i++) {
@@ -557,7 +556,7 @@ void handleMouseUp(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
             int col = t.isDark ? 1 : 0;
             int row = t.isDark ? (i - 5) : i;
 
-            float cardX = panelX + 20 * s + col * (cardWidth + 20 * s);
+            float cardX = panelX + dpi(app, 20.0f) + col * (cardWidth + dpi(app, 20.0f));
             float cardY = gridStartY + row * cardHeight;
             float innerX = cardX + cardPadding;
             float innerY = cardY + cardPadding;
@@ -806,13 +805,13 @@ void handleKeyDown(App& app, HWND hwnd, WPARAM wParam) {
             case VK_UP:
             case 'K':
                 if (!app.showSearch) {
-                    app.targetScrollY -= 50;
+                    app.targetScrollY -= dpi(app, 50.0f);
                 }
                 break;
             case VK_DOWN:
             case 'J':
                 if (!app.showSearch) {
-                    app.targetScrollY += 50;
+                    app.targetScrollY += dpi(app, 50.0f);
                 }
                 break;
             case VK_PRIOR: // Page Up

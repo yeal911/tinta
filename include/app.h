@@ -75,6 +75,13 @@ inline D2D1_COLOR_F hexColor(uint32_t hex, float alpha = 1.0f) {
     );
 }
 
+// Forward declare App for dpi() helper
+struct App;
+
+// DPI scaling helper for UI chrome elements.
+// Scales by contentScale only (not zoomFactor) so UI chrome tracks monitor DPI.
+inline float dpi(const App& app, float value);
+
 // Themes array (defined in themes.cpp)
 extern const D2DTheme THEMES[];
 extern const int THEME_COUNT;
@@ -465,5 +472,9 @@ struct App {
         if (d2dFactory) { d2dFactory->Release(); d2dFactory = nullptr; }
     }
 };
+
+inline float dpi(const App& app, float value) {
+    return value * app.contentScale;
+}
 
 #endif // TINTA_APP_H

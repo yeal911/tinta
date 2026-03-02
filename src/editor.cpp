@@ -241,7 +241,7 @@ static void editorEnsureCursorVisible(App& app) {
     if (app.editorLineStarts.empty()) return;
     size_t line = getLineFromPos(app, app.editorCursorPos);
     float lineHeight = app.editorTextFormat ? app.editorTextFormat->GetFontSize() * 1.5f : 20.0f;
-    float padding = 8.0f;
+    float padding = dpi(app, 8.0f);
     float cursorY = padding + line * lineHeight;
 
     if (cursorY < app.editorScrollY + lineHeight) {
@@ -930,7 +930,7 @@ static size_t editorPosFromClick(const App& app, int x, int y) {
     if (!app.editorTextFormat || app.editorLineStarts.empty()) return 0;
 
     float lineHeight = app.editorTextFormat->GetFontSize() * 1.5f;
-    float padding = 8.0f;
+    float padding = dpi(app, 8.0f);
     float charWidth = app.editorCharWidth > 0 ? app.editorCharWidth : app.editorTextFormat->GetFontSize() * 0.6f;
 
     float adjustedY = y + app.editorScrollY - padding;
@@ -940,7 +940,7 @@ static size_t editorPosFromClick(const App& app, int x, int y) {
     size_t lineStart = app.editorLineStarts[line];
     size_t lineLen = getLineLength(app, line);
 
-    float gutterWidth = 48.0f;
+    float gutterWidth = dpi(app, 48.0f);
     float adjustedX = (float)x - gutterWidth - padding;
     size_t col = (size_t)std::max(0, (int)(adjustedX / charWidth + 0.5f));
     col = std::min(col, lineLen);
@@ -953,7 +953,7 @@ void handleEditorMouseDown(App& app, HWND hwnd, int x, int y) {
 
     // Check for separator
     float sepX = app.width * app.editorSplitRatio;
-    if (std::abs((float)x - sepX) < 6.0f) {
+    if (std::abs((float)x - sepX) < dpi(app, 6.0f)) {
         app.draggingSeparator = true;
         app.separatorDragStartX = (float)x;
         app.separatorDragStartRatio = app.editorSplitRatio;
@@ -1067,7 +1067,7 @@ void handleEditorMouseMove(App& app, HWND hwnd, int x, int y) {
     static HCURSOR cursorIBeam = LoadCursor(nullptr, IDC_IBEAM);
     static HCURSOR cursorArrow = LoadCursor(nullptr, IDC_ARROW);
 
-    if (std::abs((float)x - sepX) < 6.0f) {
+    if (std::abs((float)x - sepX) < dpi(app, 6.0f)) {
         SetCursor(cursorSizeWE);
     } else if (x < editorWidth) {
         SetCursor(cursorIBeam);
@@ -1076,7 +1076,7 @@ void handleEditorMouseMove(App& app, HWND hwnd, int x, int y) {
 }
 
 void handleEditorMouseWheel(App& app, HWND hwnd, float delta) {
-    app.editorScrollY -= delta * 60.0f;
+    app.editorScrollY -= delta * dpi(app, 60.0f);
     app.editorScrollY = std::max(0.0f, app.editorScrollY);
     float maxScroll = std::max(0.0f, app.editorContentHeight - app.height);
     app.editorScrollY = std::min(app.editorScrollY, maxScroll);
@@ -1089,7 +1089,7 @@ void renderEditor(App& app, float editorWidth) {
     if (!app.editorTextFormat || app.editorLineStarts.empty()) return;
 
     float lineHeight = app.editorTextFormat->GetFontSize() * 1.5f;
-    float padding = 8.0f;
+    float padding = dpi(app, 8.0f);
     float charWidth = app.editorCharWidth > 0 ? app.editorCharWidth : app.editorTextFormat->GetFontSize() * 0.6f;
 
     // Editor background
@@ -1115,7 +1115,7 @@ void renderEditor(App& app, float editorWidth) {
     }
 
     // Gutter width for line numbers
-    float gutterWidth = 48.0f;
+    float gutterWidth = dpi(app, 48.0f);
 
     // Search match scanning index (both sorted by position, so we advance together)
     size_t searchScanIdx = 0;
@@ -1142,7 +1142,7 @@ void renderEditor(App& app, float editorWidth) {
         gutterColor.a = 0.3f;
         app.brush->SetColor(gutterColor);
         app.renderTarget->DrawText(lineNum, (UINT32)wcslen(lineNum), app.editorTextFormat,
-            D2D1::RectF(4, lineY, gutterWidth - 4, lineY + lineHeight), app.brush);
+            D2D1::RectF(dpi(app, 4.0f), lineY, gutterWidth - dpi(app, 4.0f), lineY + lineHeight), app.brush);
 
         // Selection highlight on this line
         if (app.editorHasSelection && selMax > lineStart && selMin < lineStart + lineLen + 1) {
@@ -1212,7 +1212,7 @@ void renderEditor(App& app, float editorWidth) {
 
         app.brush->SetColor(app.theme.text);
         app.renderTarget->FillRectangle(
-            D2D1::RectF(curX, curY, curX + 2, curY + lineHeight), app.brush);
+            D2D1::RectF(curX, curY, curX + dpi(app, 2.0f), curY + lineHeight), app.brush);
     }
     // Keep redrawing for cursor blink
     InvalidateRect(app.hwnd, nullptr, FALSE);
@@ -1224,14 +1224,14 @@ void renderEditor(App& app, float editorWidth) {
     if (app.editorContentHeight > app.height) {
         float maxScroll = app.editorContentHeight - app.height;
         float sbHeight = (float)app.height / app.editorContentHeight * app.height;
-        sbHeight = std::max(sbHeight, 30.0f);
+        sbHeight = std::max(sbHeight, dpi(app, 30.0f));
         float sbY = (maxScroll > 0) ? (app.editorScrollY / maxScroll * (app.height - sbHeight)) : 0;
 
         float sbColorValue = app.theme.isDark ? 1.0f : 0.0f;
         app.brush->SetColor(D2D1::ColorF(sbColorValue, sbColorValue, sbColorValue, 0.3f));
         app.renderTarget->FillRoundedRectangle(
-            D2D1::RoundedRect(D2D1::RectF(editorWidth - 10, sbY,
-                                           editorWidth - 4, sbY + sbHeight), 3, 3),
+            D2D1::RoundedRect(D2D1::RectF(editorWidth - dpi(app, 10.0f), sbY,
+                                           editorWidth - dpi(app, 4.0f), sbY + sbHeight), 3, 3),
             app.brush);
     }
 
@@ -1240,7 +1240,7 @@ void renderEditor(App& app, float editorWidth) {
 
 void renderSeparator(App& app) {
     float sepX = app.width * app.editorSplitRatio;
-    float sepWidth = 6.0f;
+    float sepWidth = dpi(app, 6.0f);
 
     // Separator background
     D2D1_COLOR_F sepColor = app.theme.isDark ? hexColor(0x3A3A40) : hexColor(0xD0D0D0);
@@ -1249,8 +1249,8 @@ void renderSeparator(App& app) {
         D2D1::RectF(sepX - sepWidth / 2, 0, sepX + sepWidth / 2, (float)app.height), app.brush);
 
     // Grip dots (3 dots in center)
-    float dotRadius = 2.0f;
-    float dotSpacing = 10.0f;
+    float dotRadius = dpi(app, 2.0f);
+    float dotSpacing = dpi(app, 10.0f);
     float centerY = app.height / 2.0f;
     D2D1_COLOR_F dotColor = app.theme.isDark ? hexColor(0x808080) : hexColor(0x808080);
     app.brush->SetColor(dotColor);
@@ -1281,15 +1281,15 @@ void renderEditModeNotification(App& app) {
     const wchar_t* msg = app.editorNotificationMsg.c_str();
     size_t msgLen = app.editorNotificationMsg.size();
 
-    float pillWidth = (msgLen <= 10) ? 120.0f : 300.0f;
-    float pillHeight = 30.0f;
+    float pillWidth = (msgLen <= 10) ? dpi(app, 120.0f) : dpi(app, 300.0f);
+    float pillHeight = dpi(app, 30.0f);
     float pillX = (float)(app.width - pillWidth) / 2.0f;
-    float pillY = (float)app.height - 60.0f;
+    float pillY = (float)app.height - dpi(app, 60.0f);
 
     // Green pill background
     app.brush->SetColor(D2D1::ColorF(0.2f, 0.6f, 0.3f, 0.9f * alpha));
     app.renderTarget->FillRoundedRectangle(
-        D2D1::RoundedRect(D2D1::RectF(pillX, pillY, pillX + pillWidth, pillY + pillHeight), 15, 15),
+        D2D1::RoundedRect(D2D1::RectF(pillX, pillY, pillX + pillWidth, pillY + pillHeight), dpi(app, 15.0f), dpi(app, 15.0f)),
         app.brush);
 
     // Text
