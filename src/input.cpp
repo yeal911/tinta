@@ -27,9 +27,14 @@ void handleMouseWheel(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
         float sepX = app.width * app.editorSplitRatio;
         if (app.mouseX < sepX) {
             if (ctrl) {
+                float oldZoom = app.zoomFactor;
                 float zoomDelta = delta * 0.1f;
                 app.zoomFactor = std::max(0.5f, std::min(3.0f, app.zoomFactor + zoomDelta));
+                float zoomRatio = app.zoomFactor / oldZoom;
+                app.scrollY *= zoomRatio;
+                app.targetScrollY *= zoomRatio;
                 updateTextFormats(app);
+                InvalidateRect(hwnd, nullptr, FALSE);
             } else {
                 handleEditorMouseWheel(app, hwnd, delta);
             }
@@ -38,8 +43,8 @@ void handleMouseWheel(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
         // Fall through to normal scroll for preview pane
     }
 
-    // Handle folder browser scroll
-    if (app.showFolderBrowser) {
+    // Handle folder browser scroll (not when Ctrl is held — that's zoom)
+    if (app.showFolderBrowser && !ctrl) {
         float panelWidth = std::min(dpi(app, 300.0f), std::max(dpi(app, 250.0f), app.width * 0.2f));
         float panelX = -panelWidth * (1.0f - app.folderBrowserAnimation);
         if (app.mouseX >= panelX && app.mouseX <= panelX + panelWidth) {
@@ -56,8 +61,8 @@ void handleMouseWheel(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
         }
     }
 
-    // Handle TOC scroll
-    if (app.showToc) {
+    // Handle TOC scroll (not when Ctrl is held — that's zoom)
+    if (app.showToc && !ctrl) {
         float panelWidth = std::min(dpi(app, 280.0f), std::max(dpi(app, 220.0f), app.width * 0.2f));
         float panelX = app.width - panelWidth * app.tocAnimation;
         if (app.mouseX >= panelX && app.mouseX <= panelX + panelWidth) {
@@ -74,9 +79,13 @@ void handleMouseWheel(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
     }
 
     if (ctrl) {
-        // Zoom in/out
+        // Zoom in/out — scale scroll position to keep content anchored
+        float oldZoom = app.zoomFactor;
         float zoomDelta = delta * 0.1f;
         app.zoomFactor = std::max(0.5f, std::min(3.0f, app.zoomFactor + zoomDelta));
+        float zoomRatio = app.zoomFactor / oldZoom;
+        app.scrollY *= zoomRatio;
+        app.targetScrollY *= zoomRatio;
         updateTextFormats(app);
     } else {
         // Normal scroll
