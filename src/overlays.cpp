@@ -446,6 +446,7 @@ void renderThemeChooser(App& app) {
             InvalidateRect(app.hwnd, nullptr, FALSE);
     }
     float anim = app.themeChooserAnimation;
+    float s = app.contentScale;  // DPI scale factor for layout dimensions
 
     // Semi-transparent backdrop with blur effect simulation
     float backdropAlpha = 0.85f * anim;
@@ -454,15 +455,15 @@ void renderThemeChooser(App& app) {
         D2D1::RectF(0, 0, (float)app.width, (float)app.height), app.brush);
 
     // Panel dimensions - 2 columns (Light | Dark), 5 rows
-    float panelWidth = std::min(900.0f, app.width - 80.0f);
-    float panelHeight = std::min(620.0f, app.height - 80.0f);
+    float panelWidth = std::min(900.0f * s, app.width - 80.0f * s);
+    float panelHeight = std::min(620.0f * s, app.height - 80.0f * s);
     float panelX = (app.width - panelWidth) / 2;
-    float panelY = (app.height - panelHeight) / 2 + (1 - anim) * 50;
+    float panelY = (app.height - panelHeight) / 2 + (1 - anim) * 50 * s;
 
     // Panel background with subtle gradient simulation
     D2D1_ROUNDED_RECT panelRect = D2D1::RoundedRect(
         D2D1::RectF(panelX, panelY, panelX + panelWidth, panelY + panelHeight),
-        16, 16);
+        16 * s, 16 * s);
     app.brush->SetColor(hexColor(0x1A1A1E, 0.98f * anim));
     app.renderTarget->FillRoundedRectangle(panelRect, app.brush);
 
@@ -476,14 +477,14 @@ void renderThemeChooser(App& app) {
         titleFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
         app.brush->SetColor(D2D1::ColorF(1, 1, 1, anim));
         app.renderTarget->DrawText(L"Choose Theme", 12, titleFormat,
-            D2D1::RectF(panelX, panelY + 15, panelX + panelWidth, panelY + 55), app.brush);
+            D2D1::RectF(panelX, panelY + 15 * s, panelX + panelWidth, panelY + 55 * s), app.brush);
     }
 
     // Theme grid - 2 columns, 5 rows
-    float gridStartY = panelY + 75;
-    float cardWidth = (panelWidth - 60) / 2;  // 2 columns with padding
-    float cardHeight = (panelHeight - 130) / 5;  // 5 rows
-    float cardPadding = 8;
+    float gridStartY = panelY + 75 * s;
+    float cardWidth = (panelWidth - 60 * s) / 2;  // 2 columns with padding
+    float cardHeight = (panelHeight - 130 * s) / 5;  // 5 rows
+    float cardPadding = 8 * s;
 
     app.hoveredThemeIndex = -1;
 
@@ -492,7 +493,7 @@ void renderThemeChooser(App& app) {
         int col = t.isDark ? 1 : 0;  // Light themes left, dark themes right
         int row = t.isDark ? (i - 5) : i;
 
-        float cardX = panelX + 20 + col * (cardWidth + 20);
+        float cardX = panelX + 20 * s + col * (cardWidth + 20 * s);
         float cardY = gridStartY + row * cardHeight;
         float innerX = cardX + cardPadding;
         float innerY = cardY + cardPadding;
@@ -511,15 +512,15 @@ void renderThemeChooser(App& app) {
         // Card background (theme preview)
         D2D1_ROUNDED_RECT cardRect = D2D1::RoundedRect(
             D2D1::RectF(innerX, innerY, innerX + innerW, innerY + innerH),
-            10, 10);
+            10 * s, 10 * s);
 
         // Selection/hover glow
         if (isSelected || isHovered) {
-            float glowSize = isSelected ? 3.0f : 2.0f;
+            float glowSize = (isSelected ? 3.0f : 2.0f) * s;
             D2D1_ROUNDED_RECT glowRect = D2D1::RoundedRect(
                 D2D1::RectF(innerX - glowSize, innerY - glowSize,
                             innerX + innerW + glowSize, innerY + innerH + glowSize),
-                12, 12);
+                12 * s, 12 * s);
             D2D1_COLOR_F glowColor = t.accent;
             glowColor.a = (isSelected ? 0.8f : 0.5f) * anim;
             app.brush->SetColor(glowColor);
@@ -540,7 +541,7 @@ void renderThemeChooser(App& app) {
             nameColor.a = anim;
             app.brush->SetColor(nameColor);
             app.renderTarget->DrawText(t.name, (UINT32)wcslen(t.name), nameFormat,
-                D2D1::RectF(innerX + 12, innerY + 8, innerX + innerW - 10, innerY + 28), app.brush);
+                D2D1::RectF(innerX + 12 * s, innerY + 8 * s, innerX + innerW - 10 * s, innerY + 28 * s), app.brush);
         }
 
         // Preview text samples
@@ -552,21 +553,21 @@ void renderThemeChooser(App& app) {
             textColor.a = anim;
             app.brush->SetColor(textColor);
             app.renderTarget->DrawText(L"The quick brown fox", 19, previewFormat,
-                D2D1::RectF(innerX + 12, innerY + 30, innerX + innerW - 10, innerY + 45), app.brush);
+                D2D1::RectF(innerX + 12 * s, innerY + 30 * s, innerX + innerW - 10 * s, innerY + 45 * s), app.brush);
 
             // Link sample
             D2D1_COLOR_F linkColor = t.link;
             linkColor.a = anim;
             app.brush->SetColor(linkColor);
             app.renderTarget->DrawText(L"hyperlink", 9, previewFormat,
-                D2D1::RectF(innerX + 12, innerY + 44, innerX + 80, innerY + 58), app.brush);
+                D2D1::RectF(innerX + 12 * s, innerY + 44 * s, innerX + 80 * s, innerY + 58 * s), app.brush);
 
             // Code sample background
             D2D1_COLOR_F codeBgColor = t.codeBackground;
             codeBgColor.a = anim;
             app.brush->SetColor(codeBgColor);
             app.renderTarget->FillRoundedRectangle(
-                D2D1::RoundedRect(D2D1::RectF(innerX + 75, innerY + 44, innerX + 140, innerY + 58), 3, 3),
+                D2D1::RoundedRect(D2D1::RectF(innerX + 75 * s, innerY + 44 * s, innerX + 140 * s, innerY + 58 * s), 3 * s, 3 * s),
                 app.brush);
 
             // Code text
@@ -577,7 +578,7 @@ void renderThemeChooser(App& app) {
                 codeColor.a = anim;
                 app.brush->SetColor(codeColor);
                 app.renderTarget->DrawText(L"code()", 6, codePreviewFormat,
-                    D2D1::RectF(innerX + 78, innerY + 45, innerX + 138, innerY + 58), app.brush);
+                    D2D1::RectF(innerX + 78 * s, innerY + 45 * s, innerX + 138 * s, innerY + 58 * s), app.brush);
             }
         }
 
@@ -587,17 +588,17 @@ void renderThemeChooser(App& app) {
             checkColor.a = anim;
             app.brush->SetColor(checkColor);
             app.renderTarget->FillEllipse(
-                D2D1::Ellipse(D2D1::Point2F(innerX + innerW - 18, innerY + 15), 8, 8),
+                D2D1::Ellipse(D2D1::Point2F(innerX + innerW - 18 * s, innerY + 15 * s), 8 * s, 8 * s),
                 app.brush);
             app.brush->SetColor(t.isDark ? hexColor(0x000000, anim) : hexColor(0xFFFFFF, anim));
             // Draw checkmark using lines
             app.renderTarget->DrawLine(
-                D2D1::Point2F(innerX + innerW - 22, innerY + 15),
-                D2D1::Point2F(innerX + innerW - 18, innerY + 19),
+                D2D1::Point2F(innerX + innerW - 22 * s, innerY + 15 * s),
+                D2D1::Point2F(innerX + innerW - 18 * s, innerY + 19 * s),
                 app.brush, 2.0f);
             app.renderTarget->DrawLine(
-                D2D1::Point2F(innerX + innerW - 18, innerY + 19),
-                D2D1::Point2F(innerX + innerW - 13, innerY + 11),
+                D2D1::Point2F(innerX + innerW - 18 * s, innerY + 19 * s),
+                D2D1::Point2F(innerX + innerW - 13 * s, innerY + 11 * s),
                 app.brush, 2.0f);
         }
 
@@ -616,10 +617,10 @@ void renderThemeChooser(App& app) {
 
         // Light themes header
         app.renderTarget->DrawText(L"LIGHT THEMES", 12, headerFormat,
-            D2D1::RectF(panelX + 20, gridStartY - 20, panelX + 20 + cardWidth, gridStartY - 5), app.brush);
+            D2D1::RectF(panelX + 20 * s, gridStartY - 20 * s, panelX + 20 * s + cardWidth, gridStartY - 5 * s), app.brush);
 
         // Dark themes header
         app.renderTarget->DrawText(L"DARK THEMES", 11, headerFormat,
-            D2D1::RectF(panelX + 40 + cardWidth, gridStartY - 20, panelX + 40 + cardWidth * 2, gridStartY - 5), app.brush);
+            D2D1::RectF(panelX + 40 * s + cardWidth, gridStartY - 20 * s, panelX + 40 * s + cardWidth * 2, gridStartY - 5 * s), app.brush);
     }
 }

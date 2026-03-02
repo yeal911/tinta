@@ -258,6 +258,8 @@ bool createRenderTarget(App& app) {
 
     D2D1_RENDER_TARGET_PROPERTIES rtProps = D2D1::RenderTargetProperties();
     rtProps.type = D2D1_RENDER_TARGET_TYPE_DEFAULT;
+    rtProps.dpiX = 96.0f;
+    rtProps.dpiY = 96.0f;
     rtProps.usage = D2D1_RENDER_TARGET_USAGE_NONE;
     rtProps.minLevel = D2D1_FEATURE_LEVEL_DEFAULT;
 

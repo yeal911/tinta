@@ -539,16 +539,17 @@ void handleMouseUp(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
     if (app.showThemeChooser) {
         int clickX = GET_X_LPARAM(lParam);
         int clickY = GET_Y_LPARAM(lParam);
+        float s = app.contentScale;
 
         // Calculate which theme was clicked (replicate layout logic)
-        float panelWidth = std::min(900.0f, (float)app.width - 80.0f);
-        float panelHeight = std::min(620.0f, (float)app.height - 80.0f);
+        float panelWidth = std::min(900.0f * s, (float)app.width - 80.0f * s);
+        float panelHeight = std::min(620.0f * s, (float)app.height - 80.0f * s);
         float panelX = (app.width - panelWidth) / 2;
         float panelY = (app.height - panelHeight) / 2;
-        float gridStartY = panelY + 75;
-        float cardWidth = (panelWidth - 60) / 2;
-        float cardHeight = (panelHeight - 130) / 5;
-        float cardPadding = 8;
+        float gridStartY = panelY + 75 * s;
+        float cardWidth = (panelWidth - 60 * s) / 2;
+        float cardHeight = (panelHeight - 130 * s) / 5;
+        float cardPadding = 8 * s;
 
         int clickedTheme = -1;
         for (int i = 0; i < THEME_COUNT; i++) {
@@ -556,7 +557,7 @@ void handleMouseUp(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
             int col = t.isDark ? 1 : 0;
             int row = t.isDark ? (i - 5) : i;
 
-            float cardX = panelX + 20 + col * (cardWidth + 20);
+            float cardX = panelX + 20 * s + col * (cardWidth + 20 * s);
             float cardY = gridStartY + row * cardHeight;
             float innerX = cardX + cardPadding;
             float innerY = cardY + cardPadding;
