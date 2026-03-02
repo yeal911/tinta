@@ -27,6 +27,7 @@ bool findWordBoundsAt(const App& app, const App::TextRect& tr, int x,
 void findLineRects(const App& app, float y, float& lineLeft, float& lineRight,
                    float& lineTop, float& lineBottom);
 
+void updateWindowTitle(App& app);
 void openUrl(const std::string& url);
 void copyToClipboard(HWND hwnd, const std::wstring& text);
 void extractText(const ElementPtr& elem, std::wstring& out);

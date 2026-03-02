@@ -824,6 +824,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR lpCmdLine, int nCmdShow
 
     app.metrics.fileLoadUs = usElapsed(t0);
 
+    // Set window title with filename
+    updateWindowTitle(app);
+
     // Start file watch timer and record initial write time
     updateFileWriteTime(app);
     SetTimer(app.hwnd, TIMER_FILE_WATCH, 500, nullptr);

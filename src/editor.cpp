@@ -314,12 +314,10 @@ static void scheduleReparse(App& app) {
     if (!app.editorDirty) {
         app.editorDirty = true;
         // Update window title with dirty marker
-        std::wstring title = L"* ";
         std::wstring wpath = toWide(app.currentFile);
         size_t lastSep = wpath.find_last_of(L"\\/");
-        if (lastSep != std::wstring::npos) title += wpath.substr(lastSep + 1);
-        else title += wpath;
-        title += L" - Tinta";
+        std::wstring fname = (lastSep != std::wstring::npos) ? wpath.substr(lastSep + 1) : wpath;
+        std::wstring title = L"Tinta - * " + fname;
         SetWindowTextW(app.hwnd, title.c_str());
     }
     // Reparse immediately to update preview
@@ -457,16 +455,7 @@ void exitEditMode(App& app) {
     }
 
     // Update window title (remove dirty marker)
-    std::wstring title = L"Tinta";
-    if (!app.currentFile.empty()) {
-        std::wstring wpath = toWide(app.currentFile);
-        size_t lastSep = wpath.find_last_of(L"\\/");
-        if (lastSep != std::wstring::npos)
-            title = wpath.substr(lastSep + 1) + L" - Tinta";
-        else
-            title = wpath + L" - Tinta";
-    }
-    SetWindowTextW(app.hwnd, title.c_str());
+    updateWindowTitle(app);
 
     app.layoutDirty = true;
     InvalidateRect(app.hwnd, nullptr, FALSE);
@@ -526,11 +515,7 @@ void saveEditorFile(App& app, HWND hwnd) {
         app.editModeNotificationStart = std::chrono::steady_clock::now();
 
         // Update window title
-        std::wstring title = toWide(app.currentFile);
-        size_t lastSep = title.find_last_of(L"\\/");
-        if (lastSep != std::wstring::npos) title = title.substr(lastSep + 1);
-        title += L" - Tinta";
-        SetWindowTextW(hwnd, title.c_str());
+        updateWindowTitle(app);
 
         InvalidateRect(hwnd, nullptr, FALSE);
     }

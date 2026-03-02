@@ -130,6 +130,19 @@ void findLineRects(const App& app, float y, float& lineLeft, float& lineRight,
     lineBottom = line->bottom;
 }
 
+void updateWindowTitle(App& app) {
+    std::wstring title = L"Tinta";
+    if (!app.currentFile.empty()) {
+        std::wstring wpath = toWide(app.currentFile);
+        size_t lastSep = wpath.find_last_of(L"\\/");
+        if (lastSep != std::wstring::npos)
+            title = L"Tinta - " + wpath.substr(lastSep + 1);
+        else
+            title = L"Tinta - " + wpath;
+    }
+    SetWindowTextW(app.hwnd, title.c_str());
+}
+
 void openUrl(const std::string& url) {
     if (!url.empty()) {
         ShellExecuteA(nullptr, "open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);

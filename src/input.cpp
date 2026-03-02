@@ -517,6 +517,7 @@ void handleMouseUp(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
                             app.searchMatchYs.clear();
                             app.layoutDirty = true;
                             updateFileWriteTime(app);
+                            updateWindowTitle(app);
 
                             // Close folder browser after opening file
                             app.showFolderBrowser = false;
@@ -910,6 +911,7 @@ void handleDropFiles(App& app, HWND hwnd, WPARAM wParam) {
                         app.searchMatchYs.clear();
                         app.layoutDirty = true;
                         updateFileWriteTime(app);
+                        updateWindowTitle(app);
                     }
                 }
                 InvalidateRect(hwnd, nullptr, FALSE);
