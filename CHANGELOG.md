@@ -1,5 +1,18 @@
 # Changelog
 
+## [v1.9.0] - 2026-03-02
+
+### Added
+- Code block copy button: hover any code block to reveal a "Copy" button in the top-right corner
+- In-app unsaved changes prompt (Y/N/ESC) replaces modal dialog when exiting edit mode
+
+### Fixed
+- Text selection in edit mode preview pane: coordinates now account for the preview pane offset
+- Ctrl+C in edit mode now copies preview pane selection instead of being swallowed by the editor handler
+- Double-click word select and triple-click line select work correctly in edit mode preview
+- Link clicking in edit mode preview pane works at the correct position
+- Double-ESC exit from edit mode with unsaved changes no longer gets blocked by ESC key-repeat auto-dismissing the save dialog
+
 ## [v1.8.0] - 2026-02-06
 
 ### Added
