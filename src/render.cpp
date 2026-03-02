@@ -509,6 +509,12 @@ static void layoutCodeBlock(App& app, const ElementPtr& elem, float& y, float in
                                app.theme.codeBackground});
 
     std::wstring wcode = toWide(code);
+
+    // Track code block for copy button
+    app.codeBlocks.push_back({
+        D2D1::RectF(indent, y, indent + maxWidth, y + blockHeight),
+        wcode
+    });
     float textY = y + padding;
     bool inBlockComment = false;
     size_t codeDocStart = app.docText.size();

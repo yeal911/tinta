@@ -394,6 +394,7 @@ void enterEditMode(App& app) {
     app.editorSearchCurrentIndex = 0;
     app.editMode = true;
     app.escPressedOnce = false;
+    app.confirmExitPending = false;
 
     // Disable file watch while editing
     KillTimer(app.hwnd, 1); // TIMER_FILE_WATCH = 1
@@ -411,14 +412,14 @@ void enterEditMode(App& app) {
 
 void exitEditMode(App& app) {
     if (app.editorDirty) {
-        int result = MessageBoxW(app.hwnd,
-            L"You have unsaved changes. Save before exiting?",
-            L"Unsaved Changes",
-            MB_YESNOCANCEL | MB_ICONWARNING);
-        if (result == IDCANCEL) return;
-        if (result == IDYES) {
-            saveEditorFile(app, app.hwnd);
-        }
+        // Show in-app prompt instead of modal dialog (avoids ESC key conflict)
+        app.confirmExitPending = true;
+        app.editorNotificationMsg = L"Unsaved changes! Y = save & exit, N = discard, ESC = cancel";
+        app.showEditModeNotification = true;
+        app.editModeNotificationAlpha = 1.0f;
+        app.editModeNotificationStart = std::chrono::steady_clock::now();
+        InvalidateRect(app.hwnd, nullptr, FALSE);
+        return;
     }
 
     app.editMode = false;
@@ -578,6 +579,30 @@ void handleEditorKeyDown(App& app, HWND hwnd, WPARAM wParam) {
         return; // Let WM_CHAR handle text input for search
     }
 
+    // Handle confirm-exit prompt (Y/N/ESC)
+    if (app.confirmExitPending) {
+        if (wParam == 'Y') {
+            app.confirmExitPending = false;
+            saveEditorFile(app, hwnd);
+            // Now editorDirty is false, exitEditMode will proceed
+            exitEditMode(app);
+        } else if (wParam == 'N') {
+            app.confirmExitPending = false;
+            app.editorDirty = false;  // Discard changes
+            exitEditMode(app);
+        } else {
+            // Any other key (including ESC) cancels
+            app.confirmExitPending = false;
+            app.escPressedOnce = false;
+            app.editorNotificationMsg = L"Exit cancelled";
+            app.showEditModeNotification = true;
+            app.editModeNotificationAlpha = 1.0f;
+            app.editModeNotificationStart = std::chrono::steady_clock::now();
+        }
+        InvalidateRect(hwnd, nullptr, FALSE);
+        return;
+    }
+
     if (wParam == VK_ESCAPE) {
         auto now = std::chrono::steady_clock::now();
         if (app.escPressedOnce) {
@@ -585,6 +610,7 @@ void handleEditorKeyDown(App& app, HWND hwnd, WPARAM wParam) {
                 now - app.lastEscTime).count();
             if (elapsed < 500) {
                 exitEditMode(app);
+                app.escPressedOnce = false;
                 return;
             }
         }
@@ -833,6 +859,9 @@ void handleEditorKeyDown(App& app, HWND hwnd, WPARAM wParam) {
 }
 
 void handleEditorCharInput(App& app, HWND hwnd, WPARAM wParam) {
+    // Swallow characters while confirm-exit prompt is active
+    if (app.confirmExitPending) return;
+
     // If search is active, route characters there
     if (app.showSearch && app.searchActive) {
         if (app.searchJustOpened) {

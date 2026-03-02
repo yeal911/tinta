@@ -238,6 +238,14 @@ struct App {
     std::vector<LinkRect> linkRects;
     std::string hoveredLink;
 
+    // Code block info - tracked for copy button
+    struct CodeBlockInfo {
+        D2D1_RECT_F bounds;       // Full background rect in document coordinates
+        std::wstring codeText;    // The code content
+    };
+    std::vector<CodeBlockInfo> codeBlocks;
+    int hoveredCodeBlock = -1;
+
     // Text bounds - tracked for cursor changes and selection (document coordinates)
     struct TextRect {
         D2D1_RECT_F rect;
@@ -355,6 +363,7 @@ struct App {
     // Double-ESC detection
     std::chrono::steady_clock::time_point lastEscTime;
     bool escPressedOnce = false;
+    bool confirmExitPending = false;  // Waiting for Y/N to confirm unsaved exit
 
     // Editor notification
     bool showEditModeNotification = false;
@@ -419,6 +428,7 @@ struct App {
         layoutLines.clear();
         layoutBitmaps.clear();
         linkRects.clear();
+        codeBlocks.clear();
         textRects.clear();
         lineBuckets.clear();
         docText.clear();

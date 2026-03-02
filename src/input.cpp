@@ -115,7 +115,8 @@ void handleMouseMove(App& app, HWND hwnd, LPARAM lParam) {
         // but we leave the existing code to work with document coordinates
     }
 
-    float docX = app.mouseX + app.scrollX;
+    float previewOffsetX = app.editMode ? (app.width * app.editorSplitRatio + 3) : 0;
+    float docX = (app.mouseX - previewOffsetX) + app.scrollX;
     float docY = app.mouseY + app.scrollY;
 
     // Text selection dragging
@@ -226,6 +227,18 @@ void handleMouseMove(App& app, HWND hwnd, LPARAM lParam) {
     bool wasOverText = app.overText;
     app.overText = (findTextRectAt(app, (int)docX, (int)docY) != nullptr);
 
+    // Check if hovering over any code block (show copy button on whole block)
+    int prevHoveredCodeBlock = app.hoveredCodeBlock;
+    app.hoveredCodeBlock = -1;
+    for (int i = 0; i < (int)app.codeBlocks.size(); i++) {
+        const auto& cb = app.codeBlocks[i];
+        if (docX >= cb.bounds.left && docX <= cb.bounds.right &&
+            docY >= cb.bounds.top && docY <= cb.bounds.bottom) {
+            app.hoveredCodeBlock = i;
+            break;
+        }
+    }
+
     // Update cursor (using cached handles)
     if (app.showFolderBrowser) {
         float panelWidth = std::min(dpi(app, 300.0f), std::max(dpi(app, 250.0f), app.width * 0.2f));
@@ -254,6 +267,22 @@ void handleMouseMove(App& app, HWND hwnd, LPARAM lParam) {
     } else if (app.scrollbarHovered || app.scrollbarDragging ||
         app.hScrollbarHovered || app.hScrollbarDragging) {
         SetCursor(cursorArrow);
+    } else if (app.hoveredCodeBlock >= 0) {
+        // Show hand cursor only when over the copy button area
+        const auto& cb = app.codeBlocks[app.hoveredCodeBlock];
+        float btnW = dpi(app, 52.0f);
+        float btnH = dpi(app, 26.0f);
+        float btnPad = 8.0f * app.contentScale * app.zoomFactor;
+        float btnX = cb.bounds.right - btnW - btnPad;
+        float btnY = cb.bounds.top + btnPad;
+        if (docX >= btnX && docX <= btnX + btnW &&
+            docY >= btnY && docY <= btnY + btnH) {
+            SetCursor(cursorHand);
+        } else if (app.overText) {
+            SetCursor(cursorIBeam);
+        } else {
+            SetCursor(cursorArrow);
+        }
     } else if (!app.hoveredLink.empty()) {
         SetCursor(cursorHand);
     } else if (app.overText) {
@@ -264,7 +293,8 @@ void handleMouseMove(App& app, HWND hwnd, LPARAM lParam) {
 
     if (wasHovered != app.scrollbarHovered ||
         wasHHovered != app.hScrollbarHovered ||
-        prevHoveredLink != app.hoveredLink) {
+        prevHoveredLink != app.hoveredLink ||
+        prevHoveredCodeBlock != app.hoveredCodeBlock) {
         InvalidateRect(hwnd, nullptr, FALSE);
     }
 }
@@ -291,7 +321,8 @@ void handleMouseDown(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
     app.mouseX = GET_X_LPARAM(lParam);
     app.mouseY = GET_Y_LPARAM(lParam);
     SetCapture(hwnd);
-    float docX = app.mouseX + app.scrollX;
+    float previewOffsetX = app.editMode ? (app.width * app.editorSplitRatio + 3) : 0;
+    float docX = (app.mouseX - previewOffsetX) + app.scrollX;
     float docY = app.mouseY + app.scrollY;
 
     // Check if clicking vertical scrollbar
@@ -591,6 +622,26 @@ void handleMouseUp(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
     } else if (app.hScrollbarDragging) {
         app.hScrollbarDragging = false;
         InvalidateRect(hwnd, nullptr, FALSE);
+    } else if (app.hoveredCodeBlock >= 0 && app.hoveredCodeBlock < (int)app.codeBlocks.size()) {
+        // Check if click was on the copy button (top-right corner of code block)
+        const auto& cb = app.codeBlocks[app.hoveredCodeBlock];
+        float previewOffsetX = app.editMode ? (app.width * app.editorSplitRatio + 3) : 0;
+        float clickDocX = (app.mouseX - previewOffsetX) + app.scrollX;
+        float clickDocY = app.mouseY + app.scrollY;
+        float btnW = dpi(app, 52.0f);
+        float btnH = dpi(app, 26.0f);
+        float btnPad = 8.0f * app.contentScale * app.zoomFactor;
+        float btnX = cb.bounds.right - btnW - btnPad;
+        float btnY = cb.bounds.top + btnPad;
+        if (clickDocX >= btnX && clickDocX <= btnX + btnW &&
+            clickDocY >= btnY && clickDocY <= btnY + btnH) {
+            copyToClipboard(hwnd, app.codeBlocks[app.hoveredCodeBlock].codeText);
+            app.showCopiedNotification = true;
+            app.copiedNotificationStart = std::chrono::steady_clock::now();
+            app.hoveredCodeBlock = -1;
+            app.selecting = false;
+            InvalidateRect(hwnd, nullptr, FALSE);
+        }
     } else if (app.selecting) {
         // Finalize selection based on mode
         if (app.selectionMode == App::SelectionMode::Word ||
@@ -599,7 +650,8 @@ void handleMouseUp(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
             // hasSelection was already set to true in WM_LBUTTONDOWN
         } else {
             // Normal selection: finalize with current mouse position (document coordinates)
-            float docX = app.mouseX + app.scrollX;
+            float previewOffsetX = app.editMode ? (app.width * app.editorSplitRatio + 3) : 0;
+            float docX = (app.mouseX - previewOffsetX) + app.scrollX;
             float docY = app.mouseY + app.scrollY;
             app.selEndX = (int)docX;
             app.selEndY = (int)docY;
@@ -633,8 +685,17 @@ void handleKeyDown(App& app, HWND hwnd, WPARAM wParam) {
     float maxScroll = std::max(0.0f, app.contentHeight - app.height);
     bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
 
-    // Edit mode: route all keys to editor handler
+    // Edit mode: Ctrl+C with preview pane selection should copy from preview
     if (app.editMode) {
+        if (ctrl && wParam == 'C' && app.hasSelection && !app.selectedText.empty()) {
+            copyToClipboard(hwnd, app.selectedText);
+            app.showCopiedNotification = true;
+            app.copiedNotificationStart = std::chrono::steady_clock::now();
+            app.hasSelection = false;
+            app.selectedText.clear();
+            InvalidateRect(hwnd, nullptr, FALSE);
+            return;
+        }
         handleEditorKeyDown(app, hwnd, wParam);
         return;
     }

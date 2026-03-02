@@ -201,6 +201,47 @@ render_document:
         app.drawCalls++;
     }
 
+    // Render code block copy button on hover
+    if (app.hoveredCodeBlock >= 0 && app.hoveredCodeBlock < (int)app.codeBlocks.size()) {
+        const auto& cb = app.codeBlocks[app.hoveredCodeBlock];
+        if (cb.bounds.bottom >= viewportTop - cullMargin &&
+            cb.bounds.top <= viewportBottom + cullMargin) {
+            float btnW = dpi(app, 52.0f);
+            float btnH = dpi(app, 26.0f);
+            float btnPad = 8.0f * app.contentScale * app.zoomFactor;
+            float btnX = cb.bounds.right - btnW - btnPad - app.scrollX;
+            float btnY = cb.bounds.top + btnPad - app.scrollY;
+
+            // Button background
+            app.brush->SetColor(D2D1::ColorF(
+                app.theme.isDark ? 0.3f : 0.85f,
+                app.theme.isDark ? 0.3f : 0.85f,
+                app.theme.isDark ? 0.3f : 0.85f,
+                0.9f));
+            app.renderTarget->FillRoundedRectangle(
+                D2D1::RoundedRect(D2D1::RectF(btnX, btnY, btnX + btnW, btnY + btnH), 4, 4),
+                app.brush);
+
+            // "Copy" label centered in button
+            app.brush->SetColor(D2D1::ColorF(
+                app.theme.isDark ? 0.9f : 0.15f,
+                app.theme.isDark ? 0.9f : 0.15f,
+                app.theme.isDark ? 0.9f : 0.15f,
+                1.0f));
+            IDWriteTextLayout* btnLayout = nullptr;
+            app.dwriteFactory->CreateTextLayout(L"Copy", 4, app.codeFormat,
+                btnW, btnH, &btnLayout);
+            if (btnLayout) {
+                btnLayout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+                btnLayout->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+                app.renderTarget->DrawTextLayout(
+                    D2D1::Point2F(btnX, btnY), btnLayout, app.brush);
+                btnLayout->Release();
+            }
+            app.drawCalls++;
+        }
+    }
+
     // Determine scrollbar visibility
     bool needsVScroll = app.contentHeight > app.height;
     bool needsHScroll = app.contentWidth > app.width;
