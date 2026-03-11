@@ -611,7 +611,7 @@ render_document:
     // Bottom status bar with key shortcuts (always visible)
     {
         const wchar_t* shortcuts =
-            L"B - Folder | Tab - TOC | F/Ctrl+F - Search | T - Theme | : - Edit | Ctrl+S - Save | F1 - Help | Esc - Close/Quit"
+            L"B - Folder | Tab - TOC | F/Ctrl+F - Search | T - Theme | : - Edit | Ctrl+S - Save | F1 - Help | Esc - Close/Quit";
         float barHeight = statusBarHeight(app);
         float padX = dpi(app, 10.0f);
 

@@ -171,7 +171,7 @@ void updateOverlayFormats(App& app) {
 
     app.dwriteFactory->CreateTextFormat(fontFamily, nullptr,
         DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
-        std::max(7.0f, baseFontSize - 5.0f) * scale
+        std::max(7.0f, baseFontSize - 5.0f) * scale, L"en-us", &app.statusBarFormat);
     if (app.statusBarFormat) {
         app.statusBarFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
         app.statusBarFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
