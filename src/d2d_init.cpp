@@ -125,9 +125,10 @@ void updateTextFormats(App& app) {
                     { 0xAC00, 0xD7AF },    // Hangul syllables
                     { 0xF900, 0xFAFF },    // CJK compatibility ideographs
                     { 0xFE30, 0xFE4F },    // CJK compatibility forms
+                    { 0xFF00, 0xFFEF },    // Halfwidth/fullwidth forms (e.g. Chinese parentheses)
                     { 0x20000, 0x2FA1F },  // CJK extensions B-F
                 };
-                builder->AddMapping(cjkRanges, 5, cjkFamilies, 4);
+                builder->AddMapping(cjkRanges, 6, cjkFamilies, 4);
 
                 // Emoji/symbol fallback for everything else
                 const wchar_t* emojiFamilies[] = {
