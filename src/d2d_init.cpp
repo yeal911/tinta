@@ -171,7 +171,7 @@ void updateOverlayFormats(App& app) {
 
     app.dwriteFactory->CreateTextFormat(fontFamily, nullptr,
         DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
-        std::max(8.0f, baseFontSize - 2.0f) * scale, L"en-us", &app.statusBarFormat);
+        std::max(7.0f, baseFontSize - 5.0f) * scale
     if (app.statusBarFormat) {
         app.statusBarFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
         app.statusBarFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
@@ -208,10 +208,10 @@ void updateOverlayFormats(App& app) {
     // TOC formats
     app.dwriteFactory->CreateTextFormat(fontFamily, nullptr,
         DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
-        13.0f * scale, L"en-us", &app.tocFormatBold);
+        11.0f * scale, L"en-us", &app.tocFormatBold);
     app.dwriteFactory->CreateTextFormat(fontFamily, nullptr,
         DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
-        12.0f * scale, L"en-us", &app.tocFormat);
+        10.0f * scale, L"en-us", &app.tocFormat);
 
     // Editor text format (monospace, same size as body)
     float editorScale = app.contentScale * app.zoomFactor;

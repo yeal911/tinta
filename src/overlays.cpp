@@ -491,7 +491,7 @@ void renderHelpPanel(App& app) {
     float tableX = panelX + dpi(app, 16.0f);
     float tableW = panelWidth - dpi(app, 32.0f);
     float tableY = dpi(app, 52.0f);
-    float rowH = dpi(app, 24.0f);
+    float rowH = dpi(app, 20.0f);
     float colSplit = tableX + tableW * 0.40f;
 
     D2D1_COLOR_F headerBg = app.theme.isDark ? D2D1::ColorF(0.20f, 0.21f, 0.25f, 1.0f)

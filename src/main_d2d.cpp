@@ -611,11 +611,11 @@ render_document:
     // Bottom status bar with key shortcuts (always visible)
     {
         const wchar_t* shortcuts =
-            L"B · Folder | Tab · TOC | F/Ctrl+F · Search | T · Theme | : · Edit | Ctrl+S · Save | F1 · Help | Esc · Close/Quit";
+            L"B - Folder | Tab - TOC | F/Ctrl+F - Search | T - Theme | : - Edit | Ctrl+S - Save | F1 - Help | Esc - Close/Quit"
         float barHeight = statusBarHeight(app);
         float padX = dpi(app, 10.0f);
 
-        D2D1_COLOR_F barColor = app.theme.isDark ? hexColor(0x0F1115) : hexColor(0xE7EBF1);
+        D2D1_COLOR_F barColor = hexColor(0x0F1115);
         barColor.a = 1.0f;
         app.brush->SetColor(barColor);
         app.renderTarget->FillRectangle(
@@ -635,12 +635,12 @@ render_document:
                 app.brush);
 
             size_t totalChars = app.editMode ? app.editorText.size() : app.docText.size();
-            std::wstring rightInfo = L"Chars · " + std::to_wstring(totalChars);
+            std::wstring rightInfo = L"Chars - " + std::to_wstring(totalChars);
             if (app.editMode && !app.editorLineStarts.empty()) {
                 auto it = std::upper_bound(app.editorLineStarts.begin(), app.editorLineStarts.end(), app.editorCursorPos);
                 size_t lineIdx = (it == app.editorLineStarts.begin()) ? 0 : (size_t)(it - app.editorLineStarts.begin() - 1);
                 size_t col = app.editorCursorPos - app.editorLineStarts[lineIdx];
-                rightInfo += L"   Ln · " + std::to_wstring(lineIdx + 1) + L", Col · " + std::to_wstring(col + 1);
+                rightInfo += L"   Ln - " + std::to_wstring(lineIdx + 1) + L", Col - " + std::to_wstring(col + 1);
             }
 
             statusFmt->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
