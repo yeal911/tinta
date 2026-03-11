@@ -96,6 +96,7 @@ struct Settings {
     int windowHeight = 768;
     bool windowMaximized = false;
     bool hasAskedFileAssociation = false;
+    bool hasShownQuickStartHint = false;
     std::string fontFamily = "Microsoft YaHei UI";  // 默认微软雅黑
     float fontSize = 16.0f;
 };
