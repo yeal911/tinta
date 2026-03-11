@@ -355,6 +355,11 @@ struct App {
 
     // Edit mode
     bool editMode = false;
+    enum class EditScrollSyncSource {
+        Editor,
+        Preview
+    };
+    EditScrollSyncSource editScrollSyncSource = EditScrollSyncSource::Editor;
     float editorSplitRatio = 0.5f;
     bool draggingSeparator = false;
     float separatorDragStartX = 0;

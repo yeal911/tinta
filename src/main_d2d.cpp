@@ -40,48 +40,88 @@ void render(App& app) {
         layoutDocument(app);
     }
 
-    // Sync preview scroll to editor scroll position using source-offset anchors
+    // Edit mode scroll synchronization between editor and preview panes.
     if (app.editMode && !app.scrollAnchors.empty() && !app.editorLineByteOffsets.empty()) {
-        // Find the editor's top visible line
         float lineHeight = app.editorTextFormat ? app.editorTextFormat->GetFontSize() * 1.5f : 20.0f;
-        int topLine = (int)(app.editorScrollY / lineHeight);
-        topLine = std::max(0, std::min(topLine, (int)app.editorLineByteOffsets.size() - 1));
-        size_t topByteOffset = app.editorLineByteOffsets[topLine];
+        float padding = dpi(app, 8.0f);
 
-        // Binary search for the anchor just before this byte offset
-        size_t lo = 0, hi = app.scrollAnchors.size();
-        while (lo + 1 < hi) {
-            size_t mid = (lo + hi) / 2;
-            if (app.scrollAnchors[mid].sourceOffset <= topByteOffset) lo = mid;
-            else hi = mid;
-        }
+        if (app.editScrollSyncSource == App::EditScrollSyncSource::Editor) {
+            float topContentY = app.editorScrollY + padding;
+            float topLineF = std::max(0.0f, topContentY / std::max(1.0f, lineHeight));
+            int topLine = std::max(0, std::min((int)topLineF, (int)app.editorLineByteOffsets.size() - 1));
+            int nextLine = std::min(topLine + 1, (int)app.editorLineByteOffsets.size() - 1);
+            float frac = std::max(0.0f, std::min(1.0f, topLineF - topLine));
+            size_t topByteOffset = app.editorLineByteOffsets[topLine] +
+                (size_t)((app.editorLineByteOffsets[nextLine] - app.editorLineByteOffsets[topLine]) * frac);
 
-        // Interpolate between anchor[lo] and anchor[lo+1]
-        float targetY;
-        if (lo + 1 < app.scrollAnchors.size() &&
-            app.scrollAnchors[lo + 1].sourceOffset > app.scrollAnchors[lo].sourceOffset) {
-            float t = (float)(topByteOffset - app.scrollAnchors[lo].sourceOffset) /
-                      (float)(app.scrollAnchors[lo + 1].sourceOffset - app.scrollAnchors[lo].sourceOffset);
-            t = std::max(0.0f, std::min(t, 1.0f));
-            targetY = app.scrollAnchors[lo].renderedY +
-                       t * (app.scrollAnchors[lo + 1].renderedY - app.scrollAnchors[lo].renderedY);
-        } else {
-            // Last anchor or single anchor — use ratio for remaining content
-            targetY = app.scrollAnchors[lo].renderedY;
-            if (app.contentHeight > app.scrollAnchors[lo].renderedY) {
-                size_t lastOffset = app.scrollAnchors[lo].sourceOffset;
-                size_t totalBytes = app.editorLineByteOffsets.back();
-                if (totalBytes > lastOffset) {
-                    float t = (float)(topByteOffset - lastOffset) / (float)(totalBytes - lastOffset);
-                    t = std::max(0.0f, std::min(t, 1.0f));
-                    targetY += t * (app.contentHeight - app.scrollAnchors[lo].renderedY);
+            size_t lo = 0, hi = app.scrollAnchors.size();
+            while (lo + 1 < hi) {
+                size_t mid = (lo + hi) / 2;
+                if (app.scrollAnchors[mid].sourceOffset <= topByteOffset) lo = mid;
+                else hi = mid;
+            }
+
+            float targetY;
+            if (lo + 1 < app.scrollAnchors.size() &&
+                app.scrollAnchors[lo + 1].sourceOffset > app.scrollAnchors[lo].sourceOffset) {
+                float t = (float)(topByteOffset - app.scrollAnchors[lo].sourceOffset) /
+                          (float)(app.scrollAnchors[lo + 1].sourceOffset - app.scrollAnchors[lo].sourceOffset);
+                t = std::max(0.0f, std::min(t, 1.0f));
+                targetY = app.scrollAnchors[lo].renderedY +
+                           t * (app.scrollAnchors[lo + 1].renderedY - app.scrollAnchors[lo].renderedY);
+            } else {
+                targetY = app.scrollAnchors[lo].renderedY;
+                if (app.contentHeight > app.scrollAnchors[lo].renderedY) {
+                    size_t lastOffset = app.scrollAnchors[lo].sourceOffset;
+                    size_t totalBytes = app.editorLineByteOffsets.back();
+                    if (totalBytes > lastOffset) {
+                        float t = (float)(topByteOffset - lastOffset) / (float)(totalBytes - lastOffset);
+                        t = std::max(0.0f, std::min(t, 1.0f));
+                        targetY += t * (app.contentHeight - app.scrollAnchors[lo].renderedY);
+                    }
                 }
             }
-        }
 
-        float previewMaxScroll = std::max(0.0f, app.contentHeight - (float)app.height);
-        app.scrollY = std::max(0.0f, std::min(targetY, previewMaxScroll));
-        app.targetScrollY = app.scrollY;
+            float previewMaxScroll = std::max(0.0f, app.contentHeight - (float)app.height);
+            app.scrollY = std::max(0.0f, std::min(targetY, previewMaxScroll));
+            app.targetScrollY = app.scrollY;
+        } else {
+            // Preview drives sync: map preview Y back to editor byte offset and then line position.
+            float previewY = app.scrollY;
+
+            size_t lo = 0, hi = app.scrollAnchors.size();
+            while (lo + 1 < hi) {
+                size_t mid = (lo + hi) / 2;
+                if (app.scrollAnchors[mid].renderedY <= previewY) lo = mid;
+                else hi = mid;
+            }
+
+            size_t topByteOffset = app.scrollAnchors[lo].sourceOffset;
+            if (lo + 1 < app.scrollAnchors.size() &&
+                app.scrollAnchors[lo + 1].renderedY > app.scrollAnchors[lo].renderedY) {
+                float t = (previewY - app.scrollAnchors[lo].renderedY) /
+                          (app.scrollAnchors[lo + 1].renderedY - app.scrollAnchors[lo].renderedY);
+                t = std::max(0.0f, std::min(t, 1.0f));
+                topByteOffset = app.scrollAnchors[lo].sourceOffset +
+                    (size_t)((app.scrollAnchors[lo + 1].sourceOffset - app.scrollAnchors[lo].sourceOffset) * t);
+            }
+
+            auto it = std::upper_bound(app.editorLineByteOffsets.begin(), app.editorLineByteOffsets.end(), topByteOffset);
+            size_t lineIdx = (it == app.editorLineByteOffsets.begin()) ? 0 : (size_t)(it - app.editorLineByteOffsets.begin() - 1);
+            size_t nextIdx = std::min(lineIdx + 1, app.editorLineByteOffsets.size() - 1);
+
+            float lineFrac = 0.0f;
+            size_t lineStartByte = app.editorLineByteOffsets[lineIdx];
+            size_t nextStartByte = app.editorLineByteOffsets[nextIdx];
+            if (nextStartByte > lineStartByte) {
+                lineFrac = (float)(topByteOffset - lineStartByte) / (float)(nextStartByte - lineStartByte);
+                lineFrac = std::max(0.0f, std::min(lineFrac, 1.0f));
+            }
+
+            float targetEditorY = (lineIdx + lineFrac) * lineHeight - padding;
+            float editorMaxScroll = std::max(0.0f, app.editorContentHeight - (float)app.height);
+            app.editorScrollY = std::max(0.0f, std::min(targetEditorY, editorMaxScroll));
+        }
     }
 
     // Edit mode: split view rendering
@@ -555,6 +595,32 @@ render_document:
 
         // Render edit mode notification (on top of everything)
         renderEditModeNotification(app);
+    }
+
+    // Bottom status bar with key shortcuts (always visible)
+    {
+        const wchar_t* shortcuts =
+            L"B Folder | Tab TOC | F/Ctrl+F Search | T Theme | : Edit | Ctrl+S Save | F1 Help | Esc Close/Quit";
+        float barHeight = dpi(app, 22.0f);
+        float padX = dpi(app, 8.0f);
+
+        app.brush->SetColor(D2D1::ColorF(0.08f, 0.08f, 0.1f, app.theme.isDark ? 0.72f : 0.62f));
+        app.renderTarget->FillRectangle(
+            D2D1::RectF(0, app.height - barHeight, (float)app.width, (float)app.height),
+            app.brush);
+
+        D2D1_COLOR_F textColor = app.theme.text;
+        textColor.a = 0.92f;
+        app.brush->SetColor(textColor);
+        IDWriteTextFormat* statusFmt = app.searchTextFormat ? app.searchTextFormat : app.textFormat;
+        if (statusFmt) {
+            app.renderTarget->DrawText(
+                shortcuts,
+                (UINT32)wcslen(shortcuts),
+                statusFmt,
+                D2D1::RectF(padX, app.height - barHeight + dpi(app, 2.0f), app.width - padX, (float)app.height),
+                app.brush);
+        }
     }
 
     // "Saved!" notification (reuses "Copied!" infrastructure)

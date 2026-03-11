@@ -77,7 +77,8 @@ void renderSearchOverlay(App& app) {
             D2D1_COLOR_F placeholderColor = app.theme.text;
             placeholderColor.a = 0.4f * anim;
             app.brush->SetColor(placeholderColor);
-            app.renderTarget->DrawText(L"Search...", 9, searchTextFormat,
+            const wchar_t* hint = L"Search... (Enter next, Esc close)";
+            app.renderTarget->DrawText(hint, (UINT32)wcslen(hint), searchTextFormat,
                 D2D1::RectF(textX, barY + dpi(app, 12.0f), textX + textWidth, barY + barHeight), app.brush);
         } else {
             // Actual search query
@@ -483,7 +484,7 @@ void renderThemeChooser(App& app) {
     // Theme grid - 2 columns, 5 rows
     float gridStartY = panelY + dpi(app, 75.0f);
     float cardWidth = (panelWidth - dpi(app, 60.0f)) / 2;  // 2 columns with padding
-    float cardHeight = (panelHeight - dpi(app, 130.0f)) / 5;  // 5 rows
+    float cardHeight = (panelHeight - dpi(app, 100.0f)) / 5;  // 5 rows, taller samples
     float cardPadding = dpi(app, 8.0f);
 
     app.hoveredThemeIndex = -1;

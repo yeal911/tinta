@@ -5,6 +5,27 @@
 #include <shellapi.h>
 #include <fstream>
 #include <string>
+#include <cstdlib>
+
+namespace {
+bool parseInt(const std::string& value, int& out) {
+    if (value.empty()) return false;
+    char* end = nullptr;
+    long parsed = std::strtol(value.c_str(), &end, 10);
+    if (!end || *end != '\0') return false;
+    out = (int)parsed;
+    return true;
+}
+
+bool parseFloat(const std::string& value, float& out) {
+    if (value.empty()) return false;
+    char* end = nullptr;
+    float parsed = std::strtof(value.c_str(), &end);
+    if (!end || *end != '\0') return false;
+    out = parsed;
+    return true;
+}
+}
 
 std::wstring getSettingsPath() {
     wchar_t appDataPath[MAX_PATH];
@@ -54,22 +75,25 @@ Settings loadSettings() {
         std::string key = line.substr(0, eq);
         std::string value = line.substr(eq + 1);
 
+        int intValue = 0;
+        float floatValue = 0.0f;
+
         if (key == "themeIndex") {
-            int idx = std::stoi(value);
-            if (idx >= 0 && idx < THEME_COUNT) settings.themeIndex = idx;
+            if (parseInt(value, intValue) && intValue >= 0 && intValue < THEME_COUNT) {
+                settings.themeIndex = intValue;
+            }
         } else if (key == "zoomFactor") {
-            float z = std::stof(value);
-            if (z >= 0.5f && z <= 3.0f) settings.zoomFactor = z;
+            if (parseFloat(value, floatValue) && floatValue >= 0.5f && floatValue <= 3.0f) {
+                settings.zoomFactor = floatValue;
+            }
         } else if (key == "windowX") {
-            settings.windowX = std::stoi(value);
+            if (parseInt(value, intValue)) settings.windowX = intValue;
         } else if (key == "windowY") {
-            settings.windowY = std::stoi(value);
+            if (parseInt(value, intValue)) settings.windowY = intValue;
         } else if (key == "windowWidth") {
-            int w = std::stoi(value);
-            if (w >= 200) settings.windowWidth = w;
+            if (parseInt(value, intValue) && intValue >= 200) settings.windowWidth = intValue;
         } else if (key == "windowHeight") {
-            int h = std::stoi(value);
-            if (h >= 200) settings.windowHeight = h;
+            if (parseInt(value, intValue) && intValue >= 200) settings.windowHeight = intValue;
         } else if (key == "windowMaximized") {
             settings.windowMaximized = (value == "1");
         } else if (key == "hasAskedFileAssociation") {

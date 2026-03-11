@@ -26,6 +26,7 @@ void handleMouseWheel(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
     if (app.editMode) {
         float sepX = app.width * app.editorSplitRatio;
         if (app.mouseX < sepX) {
+            app.editScrollSyncSource = App::EditScrollSyncSource::Editor;
             if (ctrl) {
                 float oldZoom = app.zoomFactor;
                 float zoomDelta = delta * 0.1f;
@@ -40,7 +41,25 @@ void handleMouseWheel(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
             }
             return;
         }
-        // Fall through to normal scroll for preview pane
+
+        // Preview pane supports independent scrolling and syncs editor back to it
+        app.editScrollSyncSource = App::EditScrollSyncSource::Preview;
+        if (ctrl) {
+            float oldZoom = app.zoomFactor;
+            float zoomDelta = delta * 0.1f;
+            app.zoomFactor = std::max(0.5f, std::min(3.0f, app.zoomFactor + zoomDelta));
+            float zoomRatio = app.zoomFactor / oldZoom;
+            app.scrollY *= zoomRatio;
+            app.targetScrollY *= zoomRatio;
+            updateTextFormats(app);
+        } else {
+            app.targetScrollY -= delta * dpi(app, 60.0f);
+            float maxScroll = std::max(0.0f, app.contentHeight - app.height);
+            app.targetScrollY = std::max(0.0f, std::min(app.targetScrollY, maxScroll));
+            app.scrollY = app.targetScrollY;
+        }
+        InvalidateRect(hwnd, nullptr, FALSE);
+        return;
     }
 
     // Handle folder browser scroll (not when Ctrl is held — that's zoom)
@@ -588,7 +607,7 @@ void handleMouseUp(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
         float panelY = (app.height - panelHeight) / 2;
         float gridStartY = panelY + dpi(app, 75.0f);
         float cardWidth = (panelWidth - dpi(app, 60.0f)) / 2;
-        float cardHeight = (panelHeight - dpi(app, 130.0f)) / 5;
+        float cardHeight = (panelHeight - dpi(app, 100.0f)) / 5;
         float cardPadding = dpi(app, 8.0f);
 
         int clickedTheme = -1;
@@ -904,6 +923,20 @@ void handleKeyDown(App& app, HWND hwnd, WPARAM wParam) {
                 if (!app.showSearch) {
                     app.showStats = !app.showStats;
                 }
+                break;
+            case VK_F1:
+                MessageBoxW(hwnd,
+                    L"Keyboard Shortcuts\n\n"
+                    L"F1: Show this help\n"
+                    L"B: Folder browser\n"
+                    L"Tab: Table of contents\n"
+                    L"F / Ctrl+F: Search\n"
+                    L"T: Theme chooser\n"
+                    L": Enter edit mode\n"
+                    L"Ctrl+S: Save (edit mode)\n"
+                    L"Esc: Close overlay / quit",
+                    L"Tinta - Shortcuts",
+                    MB_OK | MB_ICONINFORMATION);
                 break;
         }
     }
