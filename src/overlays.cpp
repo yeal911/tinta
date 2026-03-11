@@ -473,28 +473,62 @@ void renderHelpPanel(App& app) {
         D2D1::RectF(panelX + dpi(app, 16.0f), dpi(app, 14.0f), panelX + panelWidth - dpi(app, 16.0f), dpi(app, 44.0f)),
         app.brush);
 
-    const wchar_t* lines[] = {
-        L"B : Folder browser",
-        L"Tab : Table of contents",
-        L"F / Ctrl+F : Search",
-        L"T : Theme chooser",
-        L": : Enter edit mode",
-        L"Ctrl+S : Save (edit mode)",
-        L"Ctrl+C / Ctrl+A : Copy / Select all",
-        L"Arrow / J K / PgUp PgDn : Scroll",
-        L"Ctrl+Scroll : Zoom",
-        L"F1 : Toggle this panel",
-        L"Esc : Close panel or quit"
+    struct HelpRow { const wchar_t* hotkey; const wchar_t* function; };
+    const HelpRow rows[] = {
+        {L"B", L"Folder browser"},
+        {L"Tab", L"Table of contents"},
+        {L"F / Ctrl+F", L"Search"},
+        {L"T", L"Theme chooser"},
+        {L":", L"Enter edit mode"},
+        {L"Ctrl+S", L"Save (edit mode)"},
+        {L"Ctrl+C / Ctrl+A", L"Copy / Select all"},
+        {L"Arrow / J K / PgUp PgDn", L"Scroll"},
+        {L"Ctrl+Scroll", L"Zoom"},
+        {L"F1", L"Toggle this panel"},
+        {L"Esc", L"Close panel or quit"}
     };
 
-    float y = dpi(app, 52.0f);
-    float lineH = dpi(app, 24.0f);
+    float tableX = panelX + dpi(app, 16.0f);
+    float tableW = panelWidth - dpi(app, 32.0f);
+    float tableY = dpi(app, 52.0f);
+    float rowH = dpi(app, 24.0f);
+    float colSplit = tableX + tableW * 0.40f;
+
+    D2D1_COLOR_F headerBg = app.theme.isDark ? D2D1::ColorF(0.20f, 0.21f, 0.25f, 1.0f)
+                                            : D2D1::ColorF(0.88f, 0.9f, 0.94f, 1.0f);
+    app.brush->SetColor(headerBg);
+    app.renderTarget->FillRectangle(D2D1::RectF(tableX, tableY, tableX + tableW, tableY + rowH), app.brush);
+
+    app.brush->SetColor(app.theme.heading);
+    app.renderTarget->DrawText(L"hotkey", 6, boldFmt,
+        D2D1::RectF(tableX + dpi(app, 8.0f), tableY, colSplit - dpi(app, 8.0f), tableY + rowH), app.brush);
+    app.renderTarget->DrawText(L"function", 8, boldFmt,
+        D2D1::RectF(colSplit + dpi(app, 8.0f), tableY, tableX + tableW - dpi(app, 8.0f), tableY + rowH), app.brush);
+
+    D2D1_COLOR_F gridColor = app.theme.isDark ? D2D1::ColorF(0.28f, 0.30f, 0.34f, 1.0f)
+                                             : D2D1::ColorF(0.80f, 0.83f, 0.87f, 1.0f);
+    app.brush->SetColor(gridColor);
+    app.renderTarget->DrawLine(D2D1::Point2F(colSplit, tableY), D2D1::Point2F(colSplit, tableY + rowH * (1 + (float)(sizeof(rows) / sizeof(rows[0])))), app.brush, 1.0f);
+
+    float y = tableY + rowH;
     app.brush->SetColor(app.theme.text);
-    for (const wchar_t* line : lines) {
-        app.renderTarget->DrawText(line, (UINT32)wcslen(line), normalFmt,
-            D2D1::RectF(panelX + dpi(app, 16.0f), y, panelX + panelWidth - dpi(app, 16.0f), y + lineH),
-            app.brush);
-        y += lineH;
+    for (size_t i = 0; i < sizeof(rows) / sizeof(rows[0]); ++i) {
+        if (i % 2 == 1) {
+            D2D1_COLOR_F stripe = app.theme.isDark ? D2D1::ColorF(1, 1, 1, 0.03f) : D2D1::ColorF(0, 0, 0, 0.025f);
+            app.brush->SetColor(stripe);
+            app.renderTarget->FillRectangle(D2D1::RectF(tableX, y, tableX + tableW, y + rowH), app.brush);
+            app.brush->SetColor(app.theme.text);
+        }
+
+        app.renderTarget->DrawText(rows[i].hotkey, (UINT32)wcslen(rows[i].hotkey), normalFmt,
+            D2D1::RectF(tableX + dpi(app, 8.0f), y, colSplit - dpi(app, 8.0f), y + rowH), app.brush);
+        app.renderTarget->DrawText(rows[i].function, (UINT32)wcslen(rows[i].function), normalFmt,
+            D2D1::RectF(colSplit + dpi(app, 8.0f), y, tableX + tableW - dpi(app, 8.0f), y + rowH), app.brush);
+
+        app.brush->SetColor(gridColor);
+        app.renderTarget->DrawLine(D2D1::Point2F(tableX, y + rowH), D2D1::Point2F(tableX + tableW, y + rowH), app.brush, 1.0f);
+        app.brush->SetColor(app.theme.text);
+        y += rowH;
     }
 }
 
