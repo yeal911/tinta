@@ -534,6 +534,24 @@ void handleEditorKeyDown(App& app, HWND hwnd, WPARAM wParam) {
     bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
     bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
 
+    if (wParam == VK_F1) {
+        app.showHelpPanel = !app.showHelpPanel;
+        if (app.showHelpPanel) {
+            app.helpPanelAnimation = 0;
+            app.showToc = false;
+            app.tocAnimation = 0;
+        }
+        InvalidateRect(hwnd, nullptr, FALSE);
+        return;
+    }
+
+    if (app.showHelpPanel && wParam == VK_ESCAPE) {
+        app.showHelpPanel = false;
+        app.helpPanelAnimation = 0;
+        InvalidateRect(hwnd, nullptr, FALSE);
+        return;
+    }
+
     // Search still works in edit mode via Ctrl+F
     if (ctrl && wParam == 'F') {
         if (!app.showSearch) {

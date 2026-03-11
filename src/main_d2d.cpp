@@ -582,6 +582,7 @@ render_document:
     if (app.showSearch && !app.editMode) renderSearchOverlay(app);
     if (app.showFolderBrowser) renderFolderBrowser(app);
     if (app.showToc) renderToc(app);
+    if (app.showHelpPanel && !app.editMode) renderHelpPanel(app);
     if (app.showThemeChooser) renderThemeChooser(app);
 
     // Close edit mode split view clipping
@@ -595,6 +596,59 @@ render_document:
 
         // Render edit mode notification (on top of everything)
         renderEditModeNotification(app);
+
+        // Render help panel in screen coordinates over preview pane (same layer as TOC)
+        if (app.showHelpPanel) renderHelpPanel(app);
+    }
+
+    // Bottom status bar with key shortcuts (always visible)
+    {
+        const wchar_t* shortcuts =
+            L"B Folder | Tab TOC | F/Ctrl+F Search | T Theme | : Edit | Ctrl+S Save | F1 Help";
+        float barHeight = dpi(app, 20.0f);
+        float padX = dpi(app, 8.0f);
+
+        D2D1_COLOR_F barColor = app.theme.isDark ? hexColor(0x14171C) : hexColor(0xE9EDF3);
+        barColor.a = 1.0f;
+        app.brush->SetColor(barColor);
+        app.renderTarget->FillRectangle(
+            D2D1::RectF(0, app.height - barHeight, (float)app.width, (float)app.height),
+            app.brush);
+
+        D2D1_COLOR_F textColor = app.theme.text;
+        textColor.a = 1.0f;
+        app.brush->SetColor(textColor);
+        IDWriteTextFormat* statusFmt = app.statusBarFormat ? app.statusBarFormat : app.searchTextFormat;
+        if (statusFmt) {
+            float rightW = dpi(app, 270.0f);
+            app.renderTarget->DrawText(
+                shortcuts,
+                (UINT32)wcslen(shortcuts),
+                statusFmt,
+                D2D1::RectF(padX, app.height - barHeight, app.width - rightW, (float)app.height),
+                app.brush);
+
+            size_t totalChars = app.editMode ? app.editorText.size() : app.docText.size();
+            std::wstring rightInfo = L"Chars: " + std::to_wstring(totalChars);
+            if (app.editMode && !app.editorLineStarts.empty()) {
+                auto it = std::upper_bound(app.editorLineStarts.begin(), app.editorLineStarts.end(), app.editorCursorPos);
+                size_t lineIdx = (it == app.editorLineStarts.begin()) ? 0 : (size_t)(it - app.editorLineStarts.begin() - 1);
+                size_t col = app.editorCursorPos - app.editorLineStarts[lineIdx];
+                rightInfo += L"   Ln " + std::to_wstring(lineIdx + 1) + L", Col " + std::to_wstring(col + 1);
+            }
+
+            D2D1_COLOR_F infoColor = app.theme.accent;
+            infoColor.a = 1.0f;
+            app.brush->SetColor(infoColor);
+            statusFmt->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
+            app.renderTarget->DrawText(
+                rightInfo.c_str(),
+                (UINT32)rightInfo.length(),
+                statusFmt,
+                D2D1::RectF(app.width - rightW, app.height - barHeight, app.width - padX, (float)app.height),
+                app.brush);
+            statusFmt->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+        }
     }
 
     // Bottom status bar with key shortcuts (always visible)
@@ -722,6 +776,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 Settings settings = loadSettings();
                 settings.themeIndex = app->currentThemeIndex;
                 settings.zoomFactor = app->zoomFactor;
+                settings.fontSize = app->configuredFontSize;
+                if (!app->configuredFontFamily.empty()) {
+                    int len = WideCharToMultiByte(CP_UTF8, 0, app->configuredFontFamily.c_str(), -1, nullptr, 0, nullptr, nullptr);
+                    if (len > 1) {
+                        settings.fontFamily.resize(len - 1);
+                        WideCharToMultiByte(CP_UTF8, 0, app->configuredFontFamily.c_str(), -1, &settings.fontFamily[0], len, nullptr, nullptr);
+                    }
+                }
 
                 // Get window placement for position/size/maximized state
                 WINDOWPLACEMENT wp = {};
@@ -790,6 +852,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR lpCmdLine, int nCmdShow
     app.theme = THEMES[savedSettings.themeIndex];
     app.darkMode = app.theme.isDark;
     app.zoomFactor = savedSettings.zoomFactor;
+    app.configuredFontFamily = toWide(savedSettings.fontFamily);
+    if (app.configuredFontFamily.empty()) app.configuredFontFamily = L"Microsoft YaHei UI";
+    app.configuredFontSize = savedSettings.fontSize;
 
     // Parse command line
     std::string inputFile;

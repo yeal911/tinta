@@ -328,6 +328,10 @@ void handleMouseMove(App& app, HWND hwnd, LPARAM lParam) {
 }
 
 void handleMouseDown(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
+    if (app.showHelpPanel) {
+        return;
+    }
+
     // Edit mode: route to editor or preview
     if (app.editMode) {
         int x = GET_X_LPARAM(lParam);
@@ -340,8 +344,8 @@ void handleMouseDown(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
         // Fall through for preview pane clicks
     }
 
-    // If theme chooser, folder browser, or TOC is open, don't start selection - just record for click handling
-    if (app.showThemeChooser || app.showFolderBrowser || app.showToc) {
+    // If an overlay is open, don't start selection - just record for click handling
+    if (app.showThemeChooser || app.showFolderBrowser || app.showToc || app.showHelpPanel) {
         return;
     }
 
@@ -514,6 +518,21 @@ void handleMouseUp(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
             app.tocAnimation = 0;
         }
 
+        InvalidateRect(hwnd, nullptr, FALSE);
+        return;
+    }
+
+    // Help panel click handling
+    if (app.showHelpPanel) {
+        int clickX = GET_X_LPARAM(lParam);
+        float panelWidth = std::min(dpi(app, 360.0f), std::max(dpi(app, 280.0f), app.width * 0.3f));
+        float panelX = app.width - panelWidth * app.helpPanelAnimation;
+
+        // Click outside panel = close help
+        if (clickX < panelX || (float)clickX > panelX + panelWidth) {
+            app.showHelpPanel = false;
+            app.helpPanelAnimation = 0;
+        }
         InvalidateRect(hwnd, nullptr, FALSE);
         return;
     }
@@ -814,7 +833,7 @@ void handleKeyDown(App& app, HWND hwnd, WPARAM wParam) {
     } else {
         switch (wParam) {
             case VK_ESCAPE:
-                // Priority: Search > FolderBrowser > TOC > Theme chooser > Quit
+                // Priority: Search > FolderBrowser > TOC > HelpPanel > Theme chooser > Quit
                 if (app.showSearch) {
                     app.showSearch = false;
                     app.searchActive = false;
@@ -827,6 +846,9 @@ void handleKeyDown(App& app, HWND hwnd, WPARAM wParam) {
                 } else if (app.showToc) {
                     app.showToc = false;
                     app.tocAnimation = 0;
+                } else if (app.showHelpPanel) {
+                    app.showHelpPanel = false;
+                    app.helpPanelAnimation = 0;
                 } else if (app.showThemeChooser) {
                     app.showThemeChooser = false;
                     app.themeChooserAnimation = 0;
@@ -835,13 +857,13 @@ void handleKeyDown(App& app, HWND hwnd, WPARAM wParam) {
                 }
                 break;
             case 'Q':
-                if (!app.showThemeChooser && !app.showSearch && !app.showFolderBrowser && !app.showToc) {
+                if (!app.showThemeChooser && !app.showSearch && !app.showFolderBrowser && !app.showToc && !app.showHelpPanel) {
                     PostQuitMessage(0);
                 }
                 break;
             case 'B':
                 // B to toggle folder browser
-                if (!app.showSearch && !app.showThemeChooser && !app.showToc) {
+                if (!app.showSearch && !app.showThemeChooser && !app.showToc && !app.showHelpPanel) {
                     app.showFolderBrowser = !app.showFolderBrowser;
                     if (app.showFolderBrowser) {
                         app.folderBrowserAnimation = 0;
@@ -860,7 +882,7 @@ void handleKeyDown(App& app, HWND hwnd, WPARAM wParam) {
                 }
                 break;
             case VK_TAB:
-                if (!app.showSearch && !app.showThemeChooser && !app.showFolderBrowser) {
+                if (!app.showSearch && !app.showThemeChooser && !app.showFolderBrowser && !app.showHelpPanel) {
                     app.showToc = !app.showToc;
                     if (app.showToc) {
                         app.tocAnimation = 0;
@@ -871,7 +893,7 @@ void handleKeyDown(App& app, HWND hwnd, WPARAM wParam) {
                 }
                 break;
             case 'T':
-                if (!app.showSearch) {
+                if (!app.showSearch && !app.showHelpPanel) {
                     app.showThemeChooser = !app.showThemeChooser;
                     if (app.showThemeChooser) {
                         app.themeChooserAnimation = 0;
@@ -925,18 +947,13 @@ void handleKeyDown(App& app, HWND hwnd, WPARAM wParam) {
                 }
                 break;
             case VK_F1:
-                MessageBoxW(hwnd,
-                    L"Keyboard Shortcuts\n\n"
-                    L"F1: Show this help\n"
-                    L"B: Folder browser\n"
-                    L"Tab: Table of contents\n"
-                    L"F / Ctrl+F: Search\n"
-                    L"T: Theme chooser\n"
-                    L": Enter edit mode\n"
-                    L"Ctrl+S: Save (edit mode)\n"
-                    L"Esc: Close overlay / quit",
-                    L"Tinta - Shortcuts",
-                    MB_OK | MB_ICONINFORMATION);
+                app.showHelpPanel = !app.showHelpPanel;
+                if (app.showHelpPanel) {
+                    app.helpPanelAnimation = 0;
+                    app.showToc = false;
+                    app.tocAnimation = 0;
+                }
+                InvalidateRect(hwnd, nullptr, FALSE);
                 break;
         }
     }
@@ -954,7 +971,7 @@ void handleCharInput(App& app, HWND hwnd, WPARAM wParam) {
     }
 
     // ':' to enter edit mode when no overlay is active
-    if (!app.showSearch && !app.showFolderBrowser && !app.showToc && !app.showThemeChooser) {
+    if (!app.showSearch && !app.showFolderBrowser && !app.showToc && !app.showThemeChooser && !app.showHelpPanel) {
         wchar_t ch = (wchar_t)wParam;
         if (ch == L':') {
             enterEditMode(app);

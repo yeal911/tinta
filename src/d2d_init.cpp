@@ -58,11 +58,12 @@ void updateTextFormats(App& app) {
 
     // Create text formats with current zoom and theme fonts
     float scale = app.contentScale * app.zoomFactor;
-    float fontSize = 16.0f * scale;
-    float codeSize = 14.0f * scale;
+    float baseFontSize = std::max(10.0f, app.configuredFontSize);
+    float fontSize = baseFontSize * scale;
+    float codeSize = std::max(10.0f, baseFontSize * 0.9f) * scale;
 
-    const wchar_t* fontFamily = app.theme.fontFamily;
-    const wchar_t* codeFont = app.theme.codeFontFamily;
+    const wchar_t* fontFamily = app.configuredFontFamily.empty() ? app.theme.fontFamily : app.configuredFontFamily.c_str();
+    const wchar_t* codeFont = fontFamily;
 
     app.dwriteFactory->CreateTextFormat(fontFamily, nullptr,
         DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
@@ -84,9 +85,16 @@ void updateTextFormats(App& app) {
         DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_ITALIC, DWRITE_FONT_STRETCH_NORMAL,
         fontSize, L"en-us", &app.italicFormat);
 
-    // Heading formats by level (use Segoe UI to match previous behavior)
-    const wchar_t* headingFont = L"Segoe UI";
-    float headingSizes[] = {32, 26, 22, 18, 16, 14};
+    // Heading formats by level
+    const wchar_t* headingFont = fontFamily;
+    float headingSizes[] = {
+        baseFontSize * 2.0f,
+        baseFontSize * 1.65f,
+        baseFontSize * 1.4f,
+        baseFontSize * 1.2f,
+        baseFontSize * 1.05f,
+        baseFontSize * 0.95f,
+    };
     for (int i = 0; i < 6; i++) {
         app.dwriteFactory->CreateTextFormat(headingFont, nullptr,
             DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
@@ -154,16 +162,27 @@ void updateOverlayFormats(App& app) {
     float scale = app.contentScale;
 
     // Search overlay format
-    app.dwriteFactory->CreateTextFormat(app.theme.fontFamily, nullptr,
+    const wchar_t* fontFamily = app.configuredFontFamily.empty() ? app.theme.fontFamily : app.configuredFontFamily.c_str();
+    float baseFontSize = std::max(10.0f, app.configuredFontSize);
+
+    app.dwriteFactory->CreateTextFormat(fontFamily, nullptr,
         DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
-        16.0f * scale, L"en-us", &app.searchTextFormat);
+        baseFontSize * scale, L"en-us", &app.searchTextFormat);
+
+    app.dwriteFactory->CreateTextFormat(fontFamily, nullptr,
+        DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
+        std::max(9.0f, baseFontSize * 0.68f) * scale, L"en-us", &app.statusBarFormat);
+    if (app.statusBarFormat) {
+        app.statusBarFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+        app.statusBarFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
+    }
 
     // Theme chooser formats
-    app.dwriteFactory->CreateTextFormat(L"Segoe UI Light", nullptr,
+    app.dwriteFactory->CreateTextFormat(fontFamily, nullptr,
         DWRITE_FONT_WEIGHT_LIGHT, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
         28.0f * scale, L"en-us", &app.themeTitleFormat);
 
-    app.dwriteFactory->CreateTextFormat(L"Segoe UI", nullptr,
+    app.dwriteFactory->CreateTextFormat(fontFamily, nullptr,
         DWRITE_FONT_WEIGHT_SEMI_BOLD, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
         11.0f * scale, L"en-us", &app.themeHeaderFormat);
 
@@ -182,22 +201,22 @@ void updateOverlayFormats(App& app) {
     }
 
     // Folder browser format
-    app.dwriteFactory->CreateTextFormat(L"Segoe UI", nullptr,
+    app.dwriteFactory->CreateTextFormat(fontFamily, nullptr,
         DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
         13.0f * scale, L"en-us", &app.folderBrowserFormat);
 
     // TOC formats
-    app.dwriteFactory->CreateTextFormat(L"Segoe UI", nullptr,
+    app.dwriteFactory->CreateTextFormat(fontFamily, nullptr,
         DWRITE_FONT_WEIGHT_BOLD, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
         13.0f * scale, L"en-us", &app.tocFormatBold);
-    app.dwriteFactory->CreateTextFormat(L"Segoe UI", nullptr,
+    app.dwriteFactory->CreateTextFormat(fontFamily, nullptr,
         DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
         12.0f * scale, L"en-us", &app.tocFormat);
 
     // Editor text format (monospace, same size as body)
     float editorScale = app.contentScale * app.zoomFactor;
     float editorFontSize = 14.0f * editorScale;
-    app.dwriteFactory->CreateTextFormat(app.theme.codeFontFamily, nullptr,
+    app.dwriteFactory->CreateTextFormat(fontFamily, nullptr,
         DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
         editorFontSize, L"en-us", &app.editorTextFormat);
     if (app.editorTextFormat) {

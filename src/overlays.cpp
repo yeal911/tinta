@@ -439,6 +439,65 @@ void renderToc(App& app) {
     }
 }
 
+void renderHelpPanel(App& app) {
+    if (app.helpPanelAnimation < 1.0f) {
+        float prev = app.helpPanelAnimation;
+        app.helpPanelAnimation = std::min(1.0f, app.helpPanelAnimation + 0.15f);
+        if (app.helpPanelAnimation != prev) {
+            InvalidateRect(app.hwnd, nullptr, FALSE);
+        }
+    }
+    float anim = app.helpPanelAnimation;
+
+    float panelWidth = std::min(dpi(app, 360.0f), std::max(dpi(app, 280.0f), app.width * 0.3f));
+    float panelX = app.width - panelWidth * anim;
+    float panelHeight = (float)app.height;
+
+    D2D1_COLOR_F bgColor = app.theme.isDark ? D2D1::ColorF(0.11f, 0.11f, 0.13f, 1.0f)
+                                           : D2D1::ColorF(0.98f, 0.98f, 0.99f, 1.0f);
+    D2D1_COLOR_F borderColor = app.theme.isDark ? D2D1::ColorF(0.25f, 0.25f, 0.3f, 1.0f)
+                                               : D2D1::ColorF(0.85f, 0.85f, 0.88f, 1.0f);
+
+    app.brush->SetColor(bgColor);
+    app.renderTarget->FillRectangle(D2D1::RectF(panelX, 0, panelX + panelWidth, panelHeight), app.brush);
+
+    app.brush->SetColor(borderColor);
+    app.renderTarget->DrawLine(D2D1::Point2F(panelX, 0), D2D1::Point2F(panelX, panelHeight), app.brush, 1.0f);
+
+    IDWriteTextFormat* boldFmt = app.tocFormatBold ? app.tocFormatBold : app.textFormat;
+    IDWriteTextFormat* normalFmt = app.tocFormat ? app.tocFormat : app.textFormat;
+    if (!boldFmt || !normalFmt) return;
+
+    app.brush->SetColor(app.theme.heading);
+    app.renderTarget->DrawText(L"Help", 4, boldFmt,
+        D2D1::RectF(panelX + dpi(app, 16.0f), dpi(app, 14.0f), panelX + panelWidth - dpi(app, 16.0f), dpi(app, 44.0f)),
+        app.brush);
+
+    const wchar_t* lines[] = {
+        L"B : Folder browser",
+        L"Tab : Table of contents",
+        L"F / Ctrl+F : Search",
+        L"T : Theme chooser",
+        L": : Enter edit mode",
+        L"Ctrl+S : Save (edit mode)",
+        L"Ctrl+C / Ctrl+A : Copy / Select all",
+        L"Arrow / J K / PgUp PgDn : Scroll",
+        L"Ctrl+Scroll : Zoom",
+        L"F1 : Toggle this panel",
+        L"Esc : Close panel or quit"
+    };
+
+    float y = dpi(app, 52.0f);
+    float lineH = dpi(app, 24.0f);
+    app.brush->SetColor(app.theme.text);
+    for (const wchar_t* line : lines) {
+        app.renderTarget->DrawText(line, (UINT32)wcslen(line), normalFmt,
+            D2D1::RectF(panelX + dpi(app, 16.0f), y, panelX + panelWidth - dpi(app, 16.0f), y + lineH),
+            app.brush);
+        y += lineH;
+    }
+}
+
 void renderThemeChooser(App& app) {
     // Animate in - only invalidate while progressing
     if (app.themeChooserAnimation < 1.0f) {

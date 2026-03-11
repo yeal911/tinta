@@ -55,7 +55,8 @@ void saveSettings(const Settings& settings) {
     file << "windowHeight=" << settings.windowHeight << "\n";
     file << "windowMaximized=" << (settings.windowMaximized ? 1 : 0) << "\n";
     file << "hasAskedFileAssociation=" << (settings.hasAskedFileAssociation ? 1 : 0) << "\n";
-    file << "hasShownQuickStartHint=" << (settings.hasShownQuickStartHint ? 1 : 0) << "\n";
+    file << "fontFamily=" << settings.fontFamily << "\n";
+    file << "fontSize=" << settings.fontSize << "\n";
 }
 
 Settings loadSettings() {
@@ -99,8 +100,12 @@ Settings loadSettings() {
             settings.windowMaximized = (value == "1");
         } else if (key == "hasAskedFileAssociation") {
             settings.hasAskedFileAssociation = (value == "1");
-        } else if (key == "hasShownQuickStartHint") {
-            settings.hasShownQuickStartHint = (value == "1");
+        } else if (key == "fontFamily") {
+            if (!value.empty()) settings.fontFamily = value;
+        } else if (key == "fontSize") {
+            if (parseFloat(value, floatValue) && floatValue >= 10.0f && floatValue <= 48.0f) {
+                settings.fontSize = floatValue;
+            }
         }
     }
     return settings;
