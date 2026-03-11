@@ -82,7 +82,7 @@ void render(App& app) {
                 }
             }
 
-            float previewMaxScroll = std::max(0.0f, app.contentHeight - (float)app.height);
+            float previewMaxScroll = std::max(0.0f, app.contentHeight - contentViewportHeight(app));
             app.scrollY = std::max(0.0f, std::min(targetY, previewMaxScroll));
             app.targetScrollY = app.scrollY;
         } else {
@@ -162,15 +162,20 @@ void render(App& app) {
 
 render_document:
 
+    const float viewportHeight = contentViewportHeight(app);
+    app.renderTarget->PushAxisAlignedClip(
+        D2D1::RectF(0, 0, (float)app.width, viewportHeight),
+        D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+
     // Clamp scroll values
     float maxScrollX = std::max(0.0f, app.contentWidth - app.width);
-    float maxScrollY = std::max(0.0f, app.contentHeight - app.height);
+    float maxScrollY = std::max(0.0f, app.contentHeight - contentViewportHeight(app));
     app.scrollX = std::max(0.0f, std::min(app.scrollX, maxScrollX));
     app.scrollY = std::max(0.0f, std::min(app.scrollY, maxScrollY));
 
     // Render cached layout (document coordinates -> screen)
     const float viewportTop = app.scrollY;
-    const float viewportBottom = app.scrollY + app.height;
+    const float viewportBottom = app.scrollY + contentViewportHeight(app);
     const float viewportLeft = app.scrollX;
     const float viewportRight = app.scrollX + app.width;
     const float cullMargin = 100.0f;
@@ -283,7 +288,7 @@ render_document:
     }
 
     // Determine scrollbar visibility
-    bool needsVScroll = app.contentHeight > app.height;
+    bool needsVScroll = app.contentHeight > contentViewportHeight(app);
     bool needsHScroll = app.contentWidth > app.width;
     float scrollbarSize = dpi(app, 14.0f);
 
@@ -292,8 +297,8 @@ render_document:
 
     // Draw vertical scrollbar
     if (needsVScroll) {
-        float maxScrollY = std::max(0.0f, app.contentHeight - app.height);
-        float trackHeight = app.height - (needsHScroll ? scrollbarSize : 0);
+        float maxScrollY = std::max(0.0f, app.contentHeight - contentViewportHeight(app));
+        float trackHeight = contentViewportHeight(app) - (needsHScroll ? scrollbarSize : 0);
         float sbHeight = trackHeight / app.contentHeight * trackHeight;
         sbHeight = std::max(sbHeight, dpi(app, 30.0f));
         float sbY = (maxScrollY > 0) ? (app.scrollY / maxScrollY * (trackHeight - sbHeight)) : 0;
@@ -322,8 +327,8 @@ render_document:
 
         app.brush->SetColor(D2D1::ColorF(sbColorValue, sbColorValue, sbColorValue, sbAlpha));
         app.renderTarget->FillRoundedRectangle(
-            D2D1::RoundedRect(D2D1::RectF(sbX, app.height - sbHeight - dpi(app, 4.0f),
-                                          sbX + sbWidth, app.height - dpi(app, 4.0f)), 3, 3),
+            D2D1::RoundedRect(D2D1::RectF(sbX, contentViewportHeight(app) - sbHeight - dpi(app, 4.0f),
+                                          sbX + sbWidth, contentViewportHeight(app) - dpi(app, 4.0f)), 3, 3),
             app.brush);
         app.drawCalls++;
     }
@@ -601,26 +606,27 @@ render_document:
         if (app.showHelpPanel) renderHelpPanel(app);
     }
 
+    app.renderTarget->PopAxisAlignedClip();
+
     // Bottom status bar with key shortcuts (always visible)
     {
         const wchar_t* shortcuts =
-            L"B Folder | Tab TOC | F/Ctrl+F Search | T Theme | : Edit | Ctrl+S Save | F1 Help";
-        float barHeight = dpi(app, 20.0f);
-        float padX = dpi(app, 8.0f);
+            L"B · Folder | Tab · TOC | F/Ctrl+F · Search | T · Theme | : · Edit | Ctrl+S · Save | F1 · Help | Esc · Close/Quit";
+        float barHeight = statusBarHeight(app);
+        float padX = dpi(app, 10.0f);
 
-        D2D1_COLOR_F barColor = app.theme.isDark ? hexColor(0x14171C) : hexColor(0xE9EDF3);
+        D2D1_COLOR_F barColor = app.theme.isDark ? hexColor(0x0F1115) : hexColor(0xE7EBF1);
         barColor.a = 1.0f;
         app.brush->SetColor(barColor);
         app.renderTarget->FillRectangle(
             D2D1::RectF(0, app.height - barHeight, (float)app.width, (float)app.height),
             app.brush);
 
-        D2D1_COLOR_F textColor = app.theme.text;
-        textColor.a = 1.0f;
+        D2D1_COLOR_F textColor = D2D1::ColorF(1, 1, 1, 1);
         app.brush->SetColor(textColor);
         IDWriteTextFormat* statusFmt = app.statusBarFormat ? app.statusBarFormat : app.searchTextFormat;
         if (statusFmt) {
-            float rightW = dpi(app, 270.0f);
+            float rightW = dpi(app, 280.0f);
             app.renderTarget->DrawText(
                 shortcuts,
                 (UINT32)wcslen(shortcuts),
@@ -629,17 +635,14 @@ render_document:
                 app.brush);
 
             size_t totalChars = app.editMode ? app.editorText.size() : app.docText.size();
-            std::wstring rightInfo = L"Chars: " + std::to_wstring(totalChars);
+            std::wstring rightInfo = L"Chars · " + std::to_wstring(totalChars);
             if (app.editMode && !app.editorLineStarts.empty()) {
                 auto it = std::upper_bound(app.editorLineStarts.begin(), app.editorLineStarts.end(), app.editorCursorPos);
                 size_t lineIdx = (it == app.editorLineStarts.begin()) ? 0 : (size_t)(it - app.editorLineStarts.begin() - 1);
                 size_t col = app.editorCursorPos - app.editorLineStarts[lineIdx];
-                rightInfo += L"   Ln " + std::to_wstring(lineIdx + 1) + L", Col " + std::to_wstring(col + 1);
+                rightInfo += L"   Ln · " + std::to_wstring(lineIdx + 1) + L", Col · " + std::to_wstring(col + 1);
             }
 
-            D2D1_COLOR_F infoColor = app.theme.accent;
-            infoColor.a = 1.0f;
-            app.brush->SetColor(infoColor);
             statusFmt->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
             app.renderTarget->DrawText(
                 rightInfo.c_str(),
@@ -648,32 +651,6 @@ render_document:
                 D2D1::RectF(app.width - rightW, app.height - barHeight, app.width - padX, (float)app.height),
                 app.brush);
             statusFmt->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
-        }
-    }
-
-    // Bottom status bar with key shortcuts (always visible)
-    {
-        const wchar_t* shortcuts =
-            L"B Folder | Tab TOC | F/Ctrl+F Search | T Theme | : Edit | Ctrl+S Save | F1 Help | Esc Close/Quit";
-        float barHeight = dpi(app, 22.0f);
-        float padX = dpi(app, 8.0f);
-
-        app.brush->SetColor(D2D1::ColorF(0.08f, 0.08f, 0.1f, app.theme.isDark ? 0.72f : 0.62f));
-        app.renderTarget->FillRectangle(
-            D2D1::RectF(0, app.height - barHeight, (float)app.width, (float)app.height),
-            app.brush);
-
-        D2D1_COLOR_F textColor = app.theme.text;
-        textColor.a = 0.92f;
-        app.brush->SetColor(textColor);
-        IDWriteTextFormat* statusFmt = app.searchTextFormat ? app.searchTextFormat : app.textFormat;
-        if (statusFmt) {
-            app.renderTarget->DrawText(
-                shortcuts,
-                (UINT32)wcslen(shortcuts),
-                statusFmt,
-                D2D1::RectF(padX, app.height - barHeight + dpi(app, 2.0f), app.width - padX, (float)app.height),
-                app.brush);
         }
     }
 

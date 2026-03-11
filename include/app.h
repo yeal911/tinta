@@ -82,6 +82,9 @@ struct App;
 // Scales by contentScale only (not zoomFactor) so UI chrome tracks monitor DPI.
 inline float dpi(const App& app, float value);
 
+inline float statusBarHeight(const App& app);
+inline float contentViewportHeight(const App& app);
+
 // Themes array (defined in themes.cpp)
 extern const D2DTheme THEMES[];
 extern const int THEME_COUNT;
@@ -96,6 +99,7 @@ struct Settings {
     int windowHeight = 768;
     bool windowMaximized = false;
     bool hasAskedFileAssociation = false;
+    bool hasShownQuickStartHint = false;
     std::string fontFamily = "Microsoft YaHei UI";  // 默认微软雅黑
     float fontSize = 16.0f;
 };
@@ -500,6 +504,14 @@ struct App {
 
 inline float dpi(const App& app, float value) {
     return value * app.contentScale;
+}
+
+inline float statusBarHeight(const App& app) {
+    return dpi(app, 24.0f);
+}
+
+inline float contentViewportHeight(const App& app) {
+    return std::max(1.0f, (float)app.height - statusBarHeight(app));
 }
 
 #endif // TINTA_APP_H

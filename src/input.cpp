@@ -54,7 +54,7 @@ void handleMouseWheel(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
             updateTextFormats(app);
         } else {
             app.targetScrollY -= delta * dpi(app, 60.0f);
-            float maxScroll = std::max(0.0f, app.contentHeight - app.height);
+            float maxScroll = std::max(0.0f, app.contentHeight - contentViewportHeight(app));
             app.targetScrollY = std::max(0.0f, std::min(app.targetScrollY, maxScroll));
             app.scrollY = app.targetScrollY;
         }
@@ -109,7 +109,7 @@ void handleMouseWheel(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
     } else {
         // Normal scroll
         app.targetScrollY -= delta * dpi(app, 60.0f);
-        float maxScroll = std::max(0.0f, app.contentHeight - app.height);
+        float maxScroll = std::max(0.0f, app.contentHeight - contentViewportHeight(app));
         app.targetScrollY = std::max(0.0f, std::min(app.targetScrollY, maxScroll));
         app.scrollY = app.targetScrollY;
     }
@@ -186,11 +186,12 @@ void handleMouseMove(App& app, HWND hwnd, LPARAM lParam) {
 
     // Vertical scrollbar dragging
     if (app.scrollbarDragging) {
-        float maxScroll = std::max(0.0f, app.contentHeight - app.height);
-        if (maxScroll > 0 && app.contentHeight > app.height) {
-            float sbHeight = (float)app.height / app.contentHeight * app.height;
+        float maxScroll = std::max(0.0f, app.contentHeight - contentViewportHeight(app));
+        if (maxScroll > 0 && app.contentHeight > contentViewportHeight(app)) {
+            float vh = contentViewportHeight(app);
+            float sbHeight = vh / app.contentHeight * vh;
             sbHeight = std::max(sbHeight, 30.0f);
-            float trackHeight = app.height - sbHeight;
+            float trackHeight = contentViewportHeight(app) - sbHeight;
 
             float deltaY = (float)app.mouseY - app.scrollbarDragStartY;
             float scrollDelta = (deltaY / trackHeight) * maxScroll;
@@ -223,7 +224,7 @@ void handleMouseMove(App& app, HWND hwnd, LPARAM lParam) {
     // Check vertical scrollbar hover
     bool wasHovered = app.scrollbarHovered;
     app.scrollbarHovered = false;
-    if (app.contentHeight > app.height) {
+    if (app.contentHeight > contentViewportHeight(app)) {
         float sbWidth = dpi(app, 14.0f);  // hit area
         if (app.mouseX >= app.width - sbWidth) {
             app.scrollbarHovered = true;
@@ -235,7 +236,7 @@ void handleMouseMove(App& app, HWND hwnd, LPARAM lParam) {
     app.hScrollbarHovered = false;
     if (app.contentWidth > app.width) {
         float sbHeight = dpi(app, 14.0f);  // hit area
-        if (app.mouseY >= app.height - sbHeight) {
+        if (app.mouseY >= contentViewportHeight(app) - sbHeight) {
             app.hScrollbarHovered = true;
         }
     }
@@ -358,20 +359,21 @@ void handleMouseDown(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
     float docY = app.mouseY + app.scrollY;
 
     // Check if clicking vertical scrollbar
-    if (app.scrollbarHovered && app.contentHeight > app.height) {
+    if (app.scrollbarHovered && app.contentHeight > contentViewportHeight(app)) {
         app.scrollbarDragging = true;
         app.scrollbarDragStartY = (float)app.mouseY;
         app.scrollbarDragStartScroll = app.scrollY;
 
         // Check if clicking in track (not thumb) - jump to position
-        float maxScroll = std::max(0.0f, app.contentHeight - app.height);
-        float sbHeight = (float)app.height / app.contentHeight * app.height;
+        float maxScroll = std::max(0.0f, app.contentHeight - contentViewportHeight(app));
+        float vh = contentViewportHeight(app);
+        float sbHeight = vh / app.contentHeight * vh;
         sbHeight = std::max(sbHeight, 30.0f);
-        float sbY = (maxScroll > 0) ? (app.scrollY / maxScroll * (app.height - sbHeight)) : 0;
+        float sbY = (maxScroll > 0) ? (app.scrollY / maxScroll * (contentViewportHeight(app) - sbHeight)) : 0;
 
         // If clicked outside thumb, jump
         if (app.mouseY < sbY || app.mouseY > sbY + sbHeight) {
-            float trackHeight = app.height - sbHeight;
+            float trackHeight = contentViewportHeight(app) - sbHeight;
             float clickPos = (float)app.mouseY - sbHeight / 2;
             clickPos = std::max(0.0f, std::min(clickPos, trackHeight));
             app.scrollY = (clickPos / trackHeight) * maxScroll;
@@ -504,7 +506,7 @@ void handleMouseUp(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
             if (app.hoveredTocIndex >= 0 && app.hoveredTocIndex < (int)app.headings.size()) {
                 // Scroll document to heading
                 float headingY = app.headings[app.hoveredTocIndex].y - 20.0f;
-                float maxScroll = std::max(0.0f, app.contentHeight - app.height);
+                float maxScroll = std::max(0.0f, app.contentHeight - contentViewportHeight(app));
                 app.scrollY = std::max(0.0f, std::min(headingY, maxScroll));
                 app.targetScrollY = app.scrollY;
 
@@ -728,8 +730,8 @@ void handleMouseUp(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
 }
 
 void handleKeyDown(App& app, HWND hwnd, WPARAM wParam) {
-    float pageSize = app.height * 0.8f;
-    float maxScroll = std::max(0.0f, app.contentHeight - app.height);
+    float pageSize = contentViewportHeight(app) * 0.8f;
+    float maxScroll = std::max(0.0f, app.contentHeight - contentViewportHeight(app));
     bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
 
     // Edit mode: Ctrl+C with preview pane selection should copy from preview

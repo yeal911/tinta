@@ -247,8 +247,8 @@ static void editorEnsureCursorVisible(App& app) {
     if (cursorY < app.editorScrollY + lineHeight) {
         app.editorScrollY = std::max(0.0f, cursorY - lineHeight);
     }
-    if (cursorY + lineHeight > app.editorScrollY + app.height - lineHeight) {
-        app.editorScrollY = cursorY + lineHeight * 2 - app.height;
+    if (cursorY + lineHeight > app.editorScrollY + contentViewportHeight(app) - lineHeight) {
+        app.editorScrollY = cursorY + lineHeight * 2 - contentViewportHeight(app);
     }
     app.editorScrollY = std::max(0.0f, app.editorScrollY);
     app.editScrollSyncSource = App::EditScrollSyncSource::Editor;
@@ -301,9 +301,9 @@ void scrollEditorToMatch(App& app) {
     float matchY = padding + line * lineHeight;
 
     // Center match in viewport
-    app.editorScrollY = matchY - app.height / 2.0f;
+    app.editorScrollY = matchY - contentViewportHeight(app) / 2.0f;
     app.editorScrollY = std::max(0.0f, app.editorScrollY);
-    float maxScroll = std::max(0.0f, app.editorContentHeight - app.height);
+    float maxScroll = std::max(0.0f, app.editorContentHeight - contentViewportHeight(app));
     if (maxScroll > 0) {
         app.editorScrollY = std::min(app.editorScrollY, maxScroll);
     }
@@ -1179,7 +1179,7 @@ void handleEditorMouseWheel(App& app, HWND hwnd, float delta) {
     app.editScrollSyncSource = App::EditScrollSyncSource::Editor;
     app.editorScrollY -= delta * dpi(app, 60.0f);
     app.editorScrollY = std::max(0.0f, app.editorScrollY);
-    float maxScroll = std::max(0.0f, app.editorContentHeight - app.height);
+    float maxScroll = std::max(0.0f, app.editorContentHeight - contentViewportHeight(app));
     app.editorScrollY = std::min(app.editorScrollY, maxScroll);
     InvalidateRect(hwnd, nullptr, FALSE);
 }
@@ -1323,11 +1323,12 @@ void renderEditor(App& app, float editorWidth) {
     app.editorContentHeight = padding * 2 + app.editorLineStarts.size() * lineHeight;
 
     // Editor scrollbar
-    if (app.editorContentHeight > app.height) {
-        float maxScroll = app.editorContentHeight - app.height;
-        float sbHeight = (float)app.height / app.editorContentHeight * app.height;
+    if (app.editorContentHeight > contentViewportHeight(app)) {
+        float maxScroll = app.editorContentHeight - contentViewportHeight(app);
+        float vh = contentViewportHeight(app);
+        float sbHeight = vh / app.editorContentHeight * vh;
         sbHeight = std::max(sbHeight, dpi(app, 30.0f));
-        float sbY = (maxScroll > 0) ? (app.editorScrollY / maxScroll * (app.height - sbHeight)) : 0;
+        float sbY = (maxScroll > 0) ? (app.editorScrollY / maxScroll * (contentViewportHeight(app) - sbHeight)) : 0;
 
         float sbColorValue = app.theme.isDark ? 1.0f : 0.0f;
         app.brush->SetColor(D2D1::ColorF(sbColorValue, sbColorValue, sbColorValue, 0.3f));
