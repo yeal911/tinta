@@ -615,14 +615,14 @@ render_document:
         float barHeight = statusBarHeight(app);
         float padX = dpi(app, 10.0f);
 
-        D2D1_COLOR_F barColor = hexColor(0x0F1115);
+        D2D1_COLOR_F barColor = app.theme.isDark ? hexColor(0x0F1115) : hexColor(0xFFE4E4);
         barColor.a = 1.0f;
         app.brush->SetColor(barColor);
         app.renderTarget->FillRectangle(
             D2D1::RectF(0, app.height - barHeight, (float)app.width, (float)app.height),
             app.brush);
 
-        D2D1_COLOR_F textColor = D2D1::ColorF(1, 1, 1, 1);
+        D2D1_COLOR_F textColor = app.theme.isDark ? D2D1::ColorF(1, 1, 1, 1) : D2D1::ColorF(0.2f, 0.2f, 0.2f, 1);
         app.brush->SetColor(textColor);
         IDWriteTextFormat* statusFmt = app.statusBarFormat ? app.statusBarFormat : app.searchTextFormat;
         if (statusFmt) {
