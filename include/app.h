@@ -96,6 +96,8 @@ struct Settings {
     int windowHeight = 768;
     bool windowMaximized = false;
     bool hasAskedFileAssociation = false;
+    std::string fontFamily = "Microsoft YaHei UI";  // 默认微软雅黑
+    float fontSize = 16.0f;
 };
 
 // Application state
@@ -143,6 +145,7 @@ struct App {
 
     // Overlay text formats (cached)
     IDWriteTextFormat* searchTextFormat = nullptr;
+    IDWriteTextFormat* statusBarFormat = nullptr;
     IDWriteTextFormat* themeTitleFormat = nullptr;
     IDWriteTextFormat* themeHeaderFormat = nullptr;
 
@@ -183,6 +186,8 @@ struct App {
     bool showStats = false;
     int currentThemeIndex = 5;  // Default to "Midnight" (first dark theme)
     D2DTheme theme = THEMES[5];
+    std::wstring configuredFontFamily = L"Microsoft YaHei UI";
+    float configuredFontSize = 16.0f;
 
     // Theme chooser overlay
     bool showThemeChooser = false;
@@ -212,6 +217,10 @@ struct App {
     std::vector<HeadingInfo> headings;
     int hoveredTocIndex = -1;
     float tocScroll = 0.0f;
+
+    // Help panel overlay (right side)
+    bool showHelpPanel = false;
+    float helpPanelAnimation = 0.0f;
 
     // Mouse
     bool mouseDown = false;
@@ -355,6 +364,11 @@ struct App {
 
     // Edit mode
     bool editMode = false;
+    enum class EditScrollSyncSource {
+        Editor,
+        Preview
+    };
+    EditScrollSyncSource editScrollSyncSource = EditScrollSyncSource::Editor;
     float editorSplitRatio = 0.5f;
     bool draggingSeparator = false;
     float separatorDragStartX = 0;
@@ -438,6 +452,7 @@ struct App {
 
     void releaseOverlayFormats() {
         if (searchTextFormat) { searchTextFormat->Release(); searchTextFormat = nullptr; }
+        if (statusBarFormat) { statusBarFormat->Release(); statusBarFormat = nullptr; }
         if (themeTitleFormat) { themeTitleFormat->Release(); themeTitleFormat = nullptr; }
         if (themeHeaderFormat) { themeHeaderFormat->Release(); themeHeaderFormat = nullptr; }
         if (folderBrowserFormat) { folderBrowserFormat->Release(); folderBrowserFormat = nullptr; }

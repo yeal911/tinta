@@ -251,6 +251,7 @@ static void editorEnsureCursorVisible(App& app) {
         app.editorScrollY = cursorY + lineHeight * 2 - app.height;
     }
     app.editorScrollY = std::max(0.0f, app.editorScrollY);
+    app.editScrollSyncSource = App::EditScrollSyncSource::Editor;
 }
 
 // --- Editor search ---
@@ -306,6 +307,7 @@ void scrollEditorToMatch(App& app) {
     if (maxScroll > 0) {
         app.editorScrollY = std::min(app.editorScrollY, maxScroll);
     }
+    app.editScrollSyncSource = App::EditScrollSyncSource::Editor;
 }
 
 // --- Debounced reparse ---
@@ -393,8 +395,12 @@ void enterEditMode(App& app) {
     app.editorSearchMatches.clear();
     app.editorSearchCurrentIndex = 0;
     app.editMode = true;
+    app.editScrollSyncSource = App::EditScrollSyncSource::Editor;
     app.escPressedOnce = false;
     app.confirmExitPending = false;
+
+    // Build preview anchors + editor byte offsets immediately so scroll sync works before first edit.
+    editorReparse(app);
 
     // Disable file watch while editing
     KillTimer(app.hwnd, 1); // TIMER_FILE_WATCH = 1
@@ -527,6 +533,24 @@ void saveEditorFile(App& app, HWND hwnd) {
 void handleEditorKeyDown(App& app, HWND hwnd, WPARAM wParam) {
     bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
     bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+
+    if (wParam == VK_F1) {
+        app.showHelpPanel = !app.showHelpPanel;
+        if (app.showHelpPanel) {
+            app.helpPanelAnimation = 0;
+            app.showToc = false;
+            app.tocAnimation = 0;
+        }
+        InvalidateRect(hwnd, nullptr, FALSE);
+        return;
+    }
+
+    if (app.showHelpPanel && wParam == VK_ESCAPE) {
+        app.showHelpPanel = false;
+        app.helpPanelAnimation = 0;
+        InvalidateRect(hwnd, nullptr, FALSE);
+        return;
+    }
 
     // Search still works in edit mode via Ctrl+F
     if (ctrl && wParam == 'F') {
@@ -940,12 +964,75 @@ void handleEditorCharInput(App& app, HWND hwnd, WPARAM wParam) {
 
 // --- Mouse handling ---
 
+static float editorMeasureXForColumn(const App& app, size_t lineStart, size_t lineLen, size_t col) {
+    if (!app.editorTextFormat || !app.dwriteFactory) return 0.0f;
+
+    size_t safeCol = std::min(col, lineLen);
+    const wchar_t* textPtr = app.editorText.data() + lineStart;
+
+    IDWriteTextLayout* layout = nullptr;
+    app.dwriteFactory->CreateTextLayout(
+        textPtr,
+        (UINT32)lineLen,
+        app.editorTextFormat,
+        100000.0f,
+        100.0f,
+        &layout);
+    if (!layout) return 0.0f;
+
+    if (app.fontFallback) {
+        IDWriteTextLayout2* layout2 = nullptr;
+        if (SUCCEEDED(layout->QueryInterface(__uuidof(IDWriteTextLayout2), reinterpret_cast<void**>(&layout2)))) {
+            layout2->SetFontFallback(app.fontFallback);
+            layout2->Release();
+        }
+    }
+
+    FLOAT x = 0.0f;
+    FLOAT y = 0.0f;
+    DWRITE_HIT_TEST_METRICS metrics{};
+    layout->HitTestTextPosition((UINT32)safeCol, FALSE, &x, &y, &metrics);
+    layout->Release();
+    return x;
+}
+
+static size_t editorColumnFromX(const App& app, size_t lineStart, size_t lineLen, float x) {
+    if (!app.editorTextFormat || !app.dwriteFactory) return 0;
+
+    const wchar_t* textPtr = app.editorText.data() + lineStart;
+    IDWriteTextLayout* layout = nullptr;
+    app.dwriteFactory->CreateTextLayout(
+        textPtr,
+        (UINT32)lineLen,
+        app.editorTextFormat,
+        100000.0f,
+        100.0f,
+        &layout);
+    if (!layout) return 0;
+
+    if (app.fontFallback) {
+        IDWriteTextLayout2* layout2 = nullptr;
+        if (SUCCEEDED(layout->QueryInterface(__uuidof(IDWriteTextLayout2), reinterpret_cast<void**>(&layout2)))) {
+            layout2->SetFontFallback(app.fontFallback);
+            layout2->Release();
+        }
+    }
+
+    BOOL trailing = FALSE;
+    BOOL inside = FALSE;
+    DWRITE_HIT_TEST_METRICS metrics{};
+    layout->HitTestPoint(x, 0.0f, &trailing, &inside, &metrics);
+    size_t col = metrics.textPosition + (trailing ? 1 : 0);
+    layout->Release();
+
+    return std::min(col, lineLen);
+}
+
 static size_t editorPosFromClick(const App& app, int x, int y) {
     if (!app.editorTextFormat || app.editorLineStarts.empty()) return 0;
 
     float lineHeight = app.editorTextFormat->GetFontSize() * 1.5f;
     float padding = dpi(app, 8.0f);
-    float charWidth = app.editorCharWidth > 0 ? app.editorCharWidth : app.editorTextFormat->GetFontSize() * 0.6f;
 
     float adjustedY = y + app.editorScrollY - padding;
     size_t line = (size_t)std::max(0, (int)(adjustedY / lineHeight));
@@ -956,8 +1043,7 @@ static size_t editorPosFromClick(const App& app, int x, int y) {
 
     float gutterWidth = dpi(app, 48.0f);
     float adjustedX = (float)x - gutterWidth - padding;
-    size_t col = (size_t)std::max(0, (int)(adjustedX / charWidth + 0.5f));
-    col = std::min(col, lineLen);
+    size_t col = editorColumnFromX(app, lineStart, lineLen, adjustedX);
 
     return lineStart + col;
 }
@@ -1090,6 +1176,7 @@ void handleEditorMouseMove(App& app, HWND hwnd, int x, int y) {
 }
 
 void handleEditorMouseWheel(App& app, HWND hwnd, float delta) {
+    app.editScrollSyncSource = App::EditScrollSyncSource::Editor;
     app.editorScrollY -= delta * dpi(app, 60.0f);
     app.editorScrollY = std::max(0.0f, app.editorScrollY);
     float maxScroll = std::max(0.0f, app.editorContentHeight - app.height);
@@ -1104,7 +1191,6 @@ void renderEditor(App& app, float editorWidth) {
 
     float lineHeight = app.editorTextFormat->GetFontSize() * 1.5f;
     float padding = dpi(app, 8.0f);
-    float charWidth = app.editorCharWidth > 0 ? app.editorCharWidth : app.editorTextFormat->GetFontSize() * 0.6f;
 
     // Editor background
     app.brush->SetColor(app.theme.background);
@@ -1162,8 +1248,8 @@ void renderEditor(App& app, float editorWidth) {
         if (app.editorHasSelection && selMax > lineStart && selMin < lineStart + lineLen + 1) {
             size_t hlStart = (selMin > lineStart) ? selMin - lineStart : 0;
             size_t hlEnd = std::min(selMax - lineStart, lineLen + 1);
-            float hlX1 = gutterWidth + padding + hlStart * charWidth;
-            float hlX2 = gutterWidth + padding + hlEnd * charWidth;
+            float hlX1 = gutterWidth + padding + editorMeasureXForColumn(app, lineStart, lineLen, hlStart);
+            float hlX2 = gutterWidth + padding + editorMeasureXForColumn(app, lineStart, lineLen, hlEnd);
             app.brush->SetColor(D2D1::ColorF(0.2f, 0.4f, 0.9f, 0.35f));
             app.renderTarget->FillRectangle(
                 D2D1::RectF(hlX1, lineY, hlX2, lineY + lineHeight), app.brush);
@@ -1183,8 +1269,8 @@ void renderEditor(App& app, float editorWidth) {
                 size_t overlapStart = std::max(lineStart, m.startPos);
                 size_t overlapEnd = std::min(lineEnd, mEnd);
                 if (overlapStart < overlapEnd) {
-                    float hlX1 = gutterWidth + padding + (overlapStart - lineStart) * charWidth;
-                    float hlX2 = gutterWidth + padding + (overlapEnd - lineStart) * charWidth;
+                    float hlX1 = gutterWidth + padding + editorMeasureXForColumn(app, lineStart, lineLen, overlapStart - lineStart);
+                    float hlX2 = gutterWidth + padding + editorMeasureXForColumn(app, lineStart, lineLen, overlapEnd - lineStart);
 
                     bool isCurrent = ((int)si == app.editorSearchCurrentIndex);
                     if (isCurrent) {
@@ -1221,7 +1307,9 @@ void renderEditor(App& app, float editorWidth) {
     if (cursorVisible) {
         size_t curLine = getLineFromPos(app, app.editorCursorPos);
         size_t curCol = getColFromPos(app, app.editorCursorPos);
-        float curX = gutterWidth + padding + curCol * charWidth;
+        size_t curLineStart = app.editorLineStarts[curLine];
+        size_t curLineLen = getLineLength(app, curLine);
+        float curX = gutterWidth + padding + editorMeasureXForColumn(app, curLineStart, curLineLen, curCol);
         float curY = padding + curLine * lineHeight - app.editorScrollY;
 
         app.brush->SetColor(app.theme.text);
