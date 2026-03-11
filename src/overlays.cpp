@@ -484,7 +484,7 @@ void renderThemeChooser(App& app) {
     // Theme grid - 2 columns, 5 rows
     float gridStartY = panelY + dpi(app, 75.0f);
     float cardWidth = (panelWidth - dpi(app, 60.0f)) / 2;  // 2 columns with padding
-    float cardHeight = (panelHeight - dpi(app, 130.0f)) / 5;  // 5 rows
+    float cardHeight = (panelHeight - dpi(app, 100.0f)) / 5;  // 5 rows, taller samples
     float cardPadding = dpi(app, 8.0f);
 
     app.hoveredThemeIndex = -1;

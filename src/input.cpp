@@ -607,7 +607,7 @@ void handleMouseUp(App& app, HWND hwnd, WPARAM wParam, LPARAM lParam) {
         float panelY = (app.height - panelHeight) / 2;
         float gridStartY = panelY + dpi(app, 75.0f);
         float cardWidth = (panelWidth - dpi(app, 60.0f)) / 2;
-        float cardHeight = (panelHeight - dpi(app, 130.0f)) / 5;
+        float cardHeight = (panelHeight - dpi(app, 100.0f)) / 5;
         float cardPadding = dpi(app, 8.0f);
 
         int clickedTheme = -1;

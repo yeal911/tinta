@@ -597,6 +597,32 @@ render_document:
         renderEditModeNotification(app);
     }
 
+    // Bottom status bar with key shortcuts (always visible)
+    {
+        const wchar_t* shortcuts =
+            L"B Folder | Tab TOC | F/Ctrl+F Search | T Theme | : Edit | Ctrl+S Save | F1 Help | Esc Close/Quit";
+        float barHeight = dpi(app, 22.0f);
+        float padX = dpi(app, 8.0f);
+
+        app.brush->SetColor(D2D1::ColorF(0.08f, 0.08f, 0.1f, app.theme.isDark ? 0.72f : 0.62f));
+        app.renderTarget->FillRectangle(
+            D2D1::RectF(0, app.height - barHeight, (float)app.width, (float)app.height),
+            app.brush);
+
+        D2D1_COLOR_F textColor = app.theme.text;
+        textColor.a = 0.92f;
+        app.brush->SetColor(textColor);
+        IDWriteTextFormat* statusFmt = app.searchTextFormat ? app.searchTextFormat : app.textFormat;
+        if (statusFmt) {
+            app.renderTarget->DrawText(
+                shortcuts,
+                (UINT32)wcslen(shortcuts),
+                statusFmt,
+                D2D1::RectF(padX, app.height - barHeight + dpi(app, 2.0f), app.width - padX, (float)app.height),
+                app.brush);
+        }
+    }
+
     // "Saved!" notification (reuses "Copied!" infrastructure)
 
     app.renderTarget->EndDraw();

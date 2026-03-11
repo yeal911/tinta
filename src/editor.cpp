@@ -399,6 +399,9 @@ void enterEditMode(App& app) {
     app.escPressedOnce = false;
     app.confirmExitPending = false;
 
+    // Build preview anchors + editor byte offsets immediately so scroll sync works before first edit.
+    editorReparse(app);
+
     // Disable file watch while editing
     KillTimer(app.hwnd, 1); // TIMER_FILE_WATCH = 1
 
