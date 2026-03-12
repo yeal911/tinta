@@ -975,7 +975,7 @@ void handleCharInput(App& app, HWND hwnd, WPARAM wParam) {
     // ':' to enter edit mode when no overlay is active
     if (!app.showSearch && !app.showFolderBrowser && !app.showToc && !app.showThemeChooser && !app.showHelpPanel) {
         wchar_t ch = (wchar_t)wParam;
-        if (ch == L':') {
+        if (ch == L':' || ch == L'E' || ch == L'e') {
             enterEditMode(app);
             return;
         }

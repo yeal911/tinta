@@ -1387,7 +1387,7 @@ void renderEditModeNotification(App& app) {
     float pillWidth = (msgLen <= 10) ? dpi(app, 120.0f) : dpi(app, 300.0f);
     float pillHeight = dpi(app, 30.0f);
     float pillX = (float)(app.width - pillWidth) / 2.0f;
-    float pillY = (float)app.height - dpi(app, 60.0f);
+    float pillY = dpi(app, 60.0f);
 
     // Green pill background
     app.brush->SetColor(D2D1::ColorF(0.2f, 0.6f, 0.3f, 0.9f * alpha));

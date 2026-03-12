@@ -644,10 +644,9 @@ render_document:
             }
 
             statusFmt->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
-            app.renderTarget->DrawText(
-                rightInfo.c_str(),
-                (UINT32)rightInfo.length(),
-                statusFmt,
+            // Draw char count with accent color
+            app.brush->SetColor(app.theme.accent);
+            app.renderTarget->DrawText(rightInfo.c_str(), (UINT32)rightInfo.length(), statusFmt,
                 D2D1::RectF(app.width - rightW, app.height - barHeight, app.width - padX, (float)app.height),
                 app.brush);
             statusFmt->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
@@ -655,6 +654,7 @@ render_document:
     }
 
     // "Saved!" notification (reuses "Copied!" infrastructure)
+
 
     app.renderTarget->EndDraw();
 }
